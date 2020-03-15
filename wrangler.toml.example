@@ -1,0 +1,9 @@
+name = "api-covid19-india"
+type = "webpack"
+account_id = ""
+workers_dev = false
+route = "api.rootnet.in/covid19-in/*"
+zone_id = ""
+kv-namespaces = [ 
+	 { binding = "COVID19", id = "" } 
+]
