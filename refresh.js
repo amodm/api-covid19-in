@@ -17,10 +17,12 @@ export async function refreshFromSource() {
             Promise.resolve(curOriginUpdate)
         ]);
         const caseCounts = getCaseCounts(content);
+        const notifications = getNotifications(content);
         const currentUpdatePromise = Promise.all([
             Store.put(STORE_KEYS.LAST_UPDATED_ORIGIN, curOriginUpdate.toString()),
             Store.put(STORE_KEYS.LAST_REFRESHED, curRefreshed.toString()),
-            Store.put(STORE_KEYS.CASE_COUNTS, JSON.stringify(caseCounts))
+            Store.put(STORE_KEYS.CASE_COUNTS, JSON.stringify(caseCounts)),
+            Store.put(STORE_KEYS.NOTIFICATIONS, JSON.stringify(notifications))
         ]);
 
         // if we detect a new origin update, we should also update a time-series key to allow for time series analysis
@@ -123,4 +125,25 @@ function getOriginUpdate(content) {
     }
 }
 
-const SOURCE_URL = 'https://www.mohfw.gov.in/';
+function getNotifications(content) {
+    const notifications = [];
+    const listRegex = RegExp("<li>(.+?)</li>", "g");
+    const hrefRegex = RegExp("<a .*href\\s*=\\s*\"([^\"]+).+");
+    const tagRegex = RegExp("<[^>]+>", "g");
+    let listMatch;
+    while ((listMatch = listRegex.exec(content))) {
+        const innerHTML = listMatch[1];
+        const txt = innerHTML.replace(tagRegex, ' ').replace(/\s+/g, ' ').trim();
+        let href;
+        if ((href = innerHTML.match(hrefRegex))) {
+            href = href[1];
+            if (href.endsWith(".pdf") || href.includes(".gov.in")) {
+                if (href.startsWith('/')) href = `${SOURCE_URL}${href}`;
+                notifications.push({ title: txt, link: href });
+            }
+        }
+    }
+    return notifications;
+}
+
+const SOURCE_URL = 'https://www.mohfw.gov.in';

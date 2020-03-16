@@ -1,6 +1,7 @@
 import { refreshFromSource } from "./refresh";
 import { getContacts } from "./contacts";
 import { getCaseCounts, getCaseCountsTimeseries } from "./stats";
+import { getNotifications } from "./notifications";
 
 addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request))
@@ -22,5 +23,6 @@ const routeHandlers = {
   '/stats': getCaseCounts,
   '/stats/latest': getCaseCounts,
   '/stats/daily': getCaseCountsTimeseries,
+  '/notifications': getNotifications,
   '/refresh': refreshFromSource
 };
