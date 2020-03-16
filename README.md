@@ -3,7 +3,8 @@
 API for COVID-19 stats in India, sourced from [the official source](https://www.mohfw.gov.in/)
 
 ## API
-* Stats: https://api.rootnet.in/covid19-in/stats
+* Stats: https://api.rootnet.in/covid19-in/stats/latest
+* Stats as a daily series: https://api.rootnet.in/covid19-in/stats/daily
 * Contact & helpline: https://api.rootnet.in/covid19-in/contacts
 * Refresh the data from source (maintainer only) https://api.rootnet.in/covid19-in/refresh
 

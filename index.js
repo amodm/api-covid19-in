@@ -1,6 +1,6 @@
 import { refreshFromSource } from "./refresh";
 import { getContacts } from "./contacts";
-import { getCaseCounts } from "./stats";
+import { getCaseCounts, getCaseCountsTimeseries } from "./stats";
 
 addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request))
@@ -20,5 +20,7 @@ const ROUTE_PREFIX = "/covid19-in";
 const routeHandlers = {
   '/contacts': getContacts,
   '/stats': getCaseCounts,
+  '/stats/latest': getCaseCounts,
+  '/stats/daily': getCaseCountsTimeseries,
   '/refresh': refreshFromSource
 };
