@@ -108,7 +108,7 @@ function getOriginUpdate(content) {
     let m;
     if ((m = r.exec(content))) {
         const day = parseInt(m[1]);
-        const month = parseInt(m[2]);
+        const month = parseInt(m[2])-1;
         const year = parseInt(m[3]);
         const hour = parseInt(m[4]);
         const minute = parseInt(m[5]);

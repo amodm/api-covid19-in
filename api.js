@@ -7,6 +7,7 @@ export async function fetchTimestamps() {
 
 export async function successResponse(data, timestampsPromise) {
     const timestamps = await timestampsPromise;
+    console.log(timestamps);
     const output = {
         'success': true,
         'data': data,
