@@ -83,12 +83,12 @@ function getCaseCounts(content) {
  * Iterates over all table rows in @content and invokes @cb with params as (row, col, cellData)
  */
 function forEveryTableRowCol(content, cb) {
-    const rowRegex = RegExp("<tr>.+?</tr>", "gs");
+    const rowRegex = RegExp("<tr[^>]*>.+?</tr>", "gs");
     let rowMatch;
     let rowCount = 0;
     while ((rowMatch = rowRegex.exec(content))) {
         let colCount = 0;
-        const colRegex = RegExp("<td[^>]*>(.+?)</td>", "gs");
+        const colRegex = RegExp("<t[dh][^>]*>(.+?)</t[dh]>", "gs");
         let colMatch;
         while ((colMatch = colRegex.exec(rowMatch[0]))) {
             const cellData = colMatch[0].replace(/<[^>]+>/gs, '');
