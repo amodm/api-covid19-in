@@ -3,5 +3,6 @@ export const STORE_KEYS = {
     LAST_REFRESHED: "last_refreshed",
     CASE_COUNTS: "case_counts",
     CONTACTS: "contacts",
-    NOTIFICATIONS: "notifications"
+    NOTIFICATIONS: "notifications",
+    UNOFFICIAL_SRC_PREFIX: "unofficial_src_"
 };

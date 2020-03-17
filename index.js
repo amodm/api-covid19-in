@@ -2,14 +2,16 @@ import { refreshFromSource } from "./refresh";
 import { getContacts } from "./contacts";
 import { getCaseCounts, getCaseCountsTimeseries } from "./stats";
 import { getNotifications } from "./notifications";
+import { getAllUnofficialSources, getUnofficialSource } from "./unofficial";
 
 addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request))
 });
 
 async function handleRequest(request) {
-  const handler = routeHandlers[new URL(request.url).pathname.substr(ROUTE_PREFIX.length)] || notFoundHandler;
-  return handler(request)
+  const path = new URL(request.url).pathname.substr(ROUTE_PREFIX.length);
+  const handler = routeHandlers[path] || notFoundHandler;
+  return handler(request, path)
 }
 
 async function notFoundHandler() {
@@ -24,5 +26,7 @@ const routeHandlers = {
   '/stats/latest': getCaseCounts,
   '/stats/daily': getCaseCountsTimeseries,
   '/notifications': getNotifications,
+  '/unofficial/sources': getAllUnofficialSources,
+  '/unofficial/covid19india.org': getUnofficialSource,
   '/refresh': refreshFromSource
 };

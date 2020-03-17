@@ -1,0 +1,4 @@
+!/package*.json
+/*.json
+/node_modules
+/.env
