@@ -1,0 +1,21 @@
+{
+  "private": true,
+  "name": "unofficial-data-sources",
+  "version": "1.0.0",
+  "description": "Unofficial data sources",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "prettier --write '**/*.{js,css,json,md}'"
+  },
+  "author": "Amod Malviya <amod@rootnet.in>",
+  "license": "MIT",
+  "devDependencies": {
+    "prettier": "^1.18.2"
+  },
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "googleapis": "^39.2.0",
+    "node-fetch": "^2.6.0"
+  }
+}
