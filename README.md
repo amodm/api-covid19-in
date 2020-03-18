@@ -34,3 +34,6 @@ and separately from [unofficial sources](#unofficial-sources)
 ## For contributors
 
 This is created using [Cloudflare Wrangler](https://github.com/cloudflare/wrangler), and hosted on Cloudflare
+
+#### Credits
+* @GalacticMaster for reporting updated contact details
