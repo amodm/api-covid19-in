@@ -20,6 +20,7 @@ async function updateDataFromCovid19IndiaOrg() {
         else if (hdr.startsWith("detected state")) return ["state", value];
         else if (hdr.startsWith("status")) return ["status", value];
         else if (hdr.startsWith("contracted from")) return ["contractedFrom", value];
+        else if (hdr.startsWith("notes")) return ["notes", value];
         else if (hdr.startsWith("source")) return ["sources", [value]];
     };
     const sheetId = "1nzXUdaIWC84QipdVGUKTiCSc5xntBbpMpzLm6Si33zk";
