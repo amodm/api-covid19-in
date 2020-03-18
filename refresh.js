@@ -5,7 +5,9 @@ import { STORE_KEYS } from './constants';
 /**
  * Fetches data from @SOURCE_URL and caches it
  */
-export async function refreshFromSource() {
+export async function refreshFromSource(request) {
+    const isDebugMode = request.url.includes("debug");
+
     const olderTimestamps = fetchTimestamps();
     const response = await fetch(SOURCE_URL);
     const content = (await response.text());
@@ -17,8 +19,11 @@ export async function refreshFromSource() {
             Promise.resolve(curOriginUpdate)
         ]);
         const caseCounts = getCaseCounts(content);
+        if (!caseCounts || caseCounts.length === 0 || Object.keys(caseCounts[0]).length < 3) {
+            return await errorResponse({code: 500, status: "Failed to parse HTML"}, fetchTimestampsPromise)
+        }
         const notifications = getNotifications(content);
-        const currentUpdatePromise = Promise.all([
+        const currentUpdatePromise = Promise.all(isDebugMode ? [] : [
             Store.put(STORE_KEYS.LAST_UPDATED_ORIGIN, curOriginUpdate.toString()),
             Store.put(STORE_KEYS.LAST_REFRESHED, curRefreshed.toString()),
             Store.put(STORE_KEYS.CASE_COUNTS, JSON.stringify(caseCounts)),
@@ -33,10 +38,11 @@ export async function refreshFromSource() {
             await Store.put(STORE_KEYS.CASE_COUNTS + suffix, JSON.stringify(caseCounts));
         }
         await currentUpdatePromise;
-        return await successResponse({  }, fetchTimestampsPromise);
+        return await successResponse(isDebugMode ? caseCounts : {  }, fetchTimestampsPromise);
     }
     else {
-        return await errorResponse({code: response.status, status: response.statusText, body: content})
+        const error = {code: response.status, status: response.statusText, body: content};
+        return await errorResponse(error, olderTimestamps);
     }
 }
 
