@@ -1,6 +1,10 @@
 import { Store } from "./store";
 import { STORE_KEYS } from "./constants";
-import { fetchTimestamps, successResponse } from "./api";
+import {fetchTimestamps, rawResponse, successResponse} from "./api";
+
+export async function getHospitalCounts() {
+    return rawResponse(JSON.parse(await Store.get(STORE_KEYS.HOSPITAL_BEDS_COUNTS)));
+}
 
 /**
  * Get case counts

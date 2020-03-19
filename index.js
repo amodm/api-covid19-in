@@ -1,6 +1,6 @@
-import { refreshFromSource } from "./refresh";
+import { refreshAllOfficialSources } from "./refresh";
 import { getContacts } from "./contacts";
-import { getCaseCounts, getCaseCountsTimeseries } from "./stats";
+import { getCaseCounts, getCaseCountsTimeseries, getHospitalCounts } from "./stats";
 import { getNotifications } from "./notifications";
 import { getAllUnofficialSources, getUnofficialSource } from "./unofficial";
 
@@ -25,8 +25,9 @@ const routeHandlers = {
   '/stats': getCaseCounts,
   '/stats/latest': getCaseCounts,
   '/stats/daily': getCaseCountsTimeseries,
+  '/stats/hospitals': getHospitalCounts,
   '/notifications': getNotifications,
   '/unofficial/sources': getAllUnofficialSources,
   '/unofficial/covid19india.org': getUnofficialSource,
-  '/refresh': refreshFromSource
+  '/refresh': refreshAllOfficialSources
 };

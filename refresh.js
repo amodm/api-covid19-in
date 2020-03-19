@@ -1,13 +1,32 @@
 import { errorResponse, fetchTimestamps, successResponse } from './api';
 import { Store } from './store';
 import { STORE_KEYS } from './constants';
+import { refreshHospitalBeds } from "./refresh-hospital-beds";
+
+/**
+ * Refreshes all official data sources
+ */
+export async function refreshAllOfficialSources(request) {
+    const isDebugMode = request.url.includes("debug");
+    const onlyCaseCounts = request.url.includes("only=cases");
+    const onlyHospitals = request.url.includes("only=hospitals");
+
+    if (onlyCaseCounts) return await refreshCaseCounts(request, isDebugMode);
+    else if (onlyHospitals) return await refreshHospitalBeds(request, isDebugMode);
+    else {
+        await refreshCaseCounts(request, isDebugMode);
+        await refreshHospitalBeds(request, isDebugMode);
+        return await successResponse(
+            {},
+            Promise.all([Promise.resolve("0"), Promise.resolve("0")])
+        );
+    }
+}
 
 /**
  * Fetches data from @SOURCE_URL and caches it
  */
-export async function refreshFromSource(request) {
-    const isDebugMode = request.url.includes("debug");
-
+async function refreshCaseCounts(request, isDebugMode) {
     const olderTimestamps = fetchTimestamps();
     const response = await fetch(SOURCE_URL);
     const content = (await response.text());
