@@ -1,26 +1,10 @@
-import { Store } from "./store";
-import { STORE_KEYS } from "./constants";
-import { errorResponse, fetchTimestamps, successResponse } from "./api";
+import { successResponse } from "./api";
 
 /**
  * Get all unofficial sources
  */
 export async function getAllUnofficialSources() {
-    const tsPromise = fetchTimestamps();
-    return successResponse({ "unofficialSources": ALL_UNOFFICIAL_SOURCES }, tsPromise);
-}
-
-export async function getUnofficialSource(request, path) {
-    const tsPromise = fetchTimestamps();
-    const arr = path.split('/');
-    if (arr.length < 3 || !ALL_UNOFFICIAL_SOURCES.includes(arr[2])) {
-        return errorResponse({ reason: "invalid source" }, tsPromise, 404);
-    }
-    else {
-        const suffix = arr.length > 3 ? `_${arr[3]}` : '';
-        const data = await Store.get(STORE_KEYS.UNOFFICIAL_SRC_PREFIX + arr[2] + suffix);
-        return successResponse(JSON.parse(data), tsPromise);
-    }
+    return successResponse({ "unofficialSources": ALL_UNOFFICIAL_SOURCES });
 }
 
 const COVID19INDIA_ORG = 'covid19india.org';

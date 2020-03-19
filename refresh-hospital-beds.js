@@ -1,4 +1,4 @@
-import {errorResponse, rawResponse, successResponse} from './api';
+import { errorResponse, rawResponse } from './api';
 import { Store } from './store';
 import { STORE_KEYS } from './constants';
 

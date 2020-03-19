@@ -71,10 +71,16 @@ async function updateStatewiseDataFromCovid19IndiaOrg() {
  * Update the unofficial source record in Workers KV
  */
 async function updateUnofficialSource(sourceId, data, suffix=undefined) {
-    const finalData = {source: sourceId, lastRefreshed: new Date().toISOString(), ...data};
+    const current = new Date().toISOString();
+    const finalData = {
+        success: true,
+        data: {source: sourceId, lastRefreshed: current, ...data},
+        lastRefreshed: current,
+        lastOriginUpdate: current
+    };
     const accountId = process.env['CF_ACCOUNT_ID'];
     const namespaceId = process.env['CF_NAMESPACE_ID'];
-    const key = suffix ? `unofficial_src_${sourceId}_${suffix}` : `unofficial_src_${sourceId}`;
+    const key = suffix ? `cached_unofficial_src_${sourceId}_${suffix}` : `cached_unofficial_src_${sourceId}`;
     const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${namespaceId}/values/${key}`;
     await fetch(url, {
         method: 'PUT',

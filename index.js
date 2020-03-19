@@ -1,5 +1,5 @@
 import { refreshAllOfficialSources } from "./refresh";
-import { getAllUnofficialSources, getUnofficialSource } from "./unofficial";
+import { getAllUnofficialSources } from "./unofficial";
 import {errorResponse, rawResponse} from "./api";
 import { Store } from "./store";
 import { STORE_KEYS } from "./constants";
@@ -36,7 +36,9 @@ const routeHandlers = {
   '/stats/hospitals': () => cachedData(STORE_KEYS.CACHED_HOSPITAL_BEDS_COUNT),
   '/notifications': () => cachedData(STORE_KEYS.CACHED_NOTIFICATIONS),
   '/unofficial/sources': getAllUnofficialSources,
-  '/unofficial/covid19india.org': getUnofficialSource,
-  '/unofficial/covid19india.org/statewise': getUnofficialSource,
+  '/unofficial/covid19india.org': () =>
+      cachedData(STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org"),
+  '/unofficial/covid19india.org/statewise': () =>
+      cachedData(STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org_statewise"),
   '/refresh': refreshAllOfficialSources
 };
