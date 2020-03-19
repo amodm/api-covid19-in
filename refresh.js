@@ -1,4 +1,4 @@
-import { errorResponse, fetchTimestamps, successResponse } from './api';
+import { errorResponse, rawResponse } from './api';
 import { Store } from './store';
 import { STORE_KEYS } from './constants';
 import { refreshHospitalBeds } from "./refresh-hospital-beds";
@@ -16,10 +16,7 @@ export async function refreshAllOfficialSources(request) {
     else {
         await refreshCaseCounts(request, isDebugMode);
         await refreshHospitalBeds(request, isDebugMode);
-        return await successResponse(
-            {},
-            Promise.all([Promise.resolve("0"), Promise.resolve("0")])
-        );
+        return rawResponse({});
     }
 }
 
@@ -27,41 +24,63 @@ export async function refreshAllOfficialSources(request) {
  * Fetches data from @SOURCE_URL and caches it
  */
 async function refreshCaseCounts(request, isDebugMode) {
-    const olderTimestamps = fetchTimestamps();
     const response = await fetch(SOURCE_URL);
     const content = (await response.text());
     if (response.status === 200) {
-        const curOriginUpdate = getOriginUpdate(content);
-        const curRefreshed = new Date().getTime();
-        const fetchTimestampsPromise = Promise.all([
-            Promise.resolve(curRefreshed),
-            Promise.resolve(curOriginUpdate)
-        ]);
+        const curOriginUpdateMillis = getOriginUpdateTime(content);
+        const curOriginUpdateDate = new Date(curOriginUpdateMillis);
+        const curRefreshedDate = new Date();
         const caseCounts = getCaseCounts(content);
+
+        // heuristically check for failure
         if (!caseCounts || caseCounts.length === 0 || Object.keys(caseCounts[0]).length < 3) {
-            return await errorResponse({code: 500, status: "Failed to parse HTML"}, fetchTimestampsPromise)
+            return await errorResponse({code: 500, status: "Failed to parse HTML"})
         }
+
+        // extract data from html content
         const notifications = getNotifications(content);
+        const currentCaseCountRecord = createCaseCountRecord(caseCounts);
+
+        // if we detect a new origin update, also update the historical timestamped record
+        const historicalTimestamps = await getCaseCountHistoricalTimestamps();
+        const isNewOriginUpdate = historicalTimestamps.length===0 ||
+            curOriginUpdateMillis > new Date(historicalTimestamps[historicalTimestamps.length-1]).getTime();
+        if (isNewOriginUpdate) {
+            const ts = curOriginUpdateDate.toISOString();
+            await Store.put(getCaseCountKeyForHistoricalTimestamp(ts), JSON.stringify(caseCounts));
+        }
+
+        // update all the usual cached keys if not in debug mode
         const currentUpdatePromise = Promise.all(isDebugMode ? [] : [
-            Store.put(STORE_KEYS.LAST_UPDATED_ORIGIN, curOriginUpdate.toString()),
-            Store.put(STORE_KEYS.LAST_REFRESHED, curRefreshed.toString()),
-            Store.put(STORE_KEYS.CASE_COUNTS, JSON.stringify(caseCounts)),
-            Store.put(STORE_KEYS.NOTIFICATIONS, JSON.stringify(notifications))
+            // update case counts
+            Store.put(STORE_KEYS.CACHED_CASE_COUNTS, JSON.stringify({
+                success: true,
+                data: currentCaseCountRecord,
+                lastRefreshed: curRefreshedDate.toISOString(),
+                lastOriginUpdate: curOriginUpdateDate.toISOString()
+            })),
+            // update notifications
+            Store.put(STORE_KEYS.CACHED_NOTIFICATIONS, JSON.stringify({
+                success: true,
+                data: {notifications: notifications},
+                lastRefreshed: curRefreshedDate.toISOString(),
+                lastOriginUpdate: curOriginUpdateDate.toISOString()
+            })),
+            // update case count history
+            Store.put(STORE_KEYS.CACHED_CASE_COUNTS_HISTORY, JSON.stringify({
+                success: true,
+                data: await getCaseCountTimeSeries(historicalTimestamps),
+                lastRefreshed: curRefreshedDate.toISOString(),
+                lastOriginUpdate: curOriginUpdateDate.toISOString()
+            }))
         ]);
 
-        // if we detect a new origin update, we should also update a time-series key to allow for time series analysis
-        // later
-        const prevOriginUpdate = parseInt((await olderTimestamps)[1]);
-        if (curOriginUpdate > prevOriginUpdate) {
-            const suffix = "/" + new Date(curOriginUpdate).toISOString();
-            await Store.put(STORE_KEYS.CASE_COUNTS + suffix, JSON.stringify(caseCounts));
-        }
         await currentUpdatePromise;
-        return await successResponse(isDebugMode ? caseCounts : {  }, fetchTimestampsPromise);
+        return rawResponse(isDebugMode ? caseCounts : {  });
     }
     else {
         const error = {code: response.status, status: response.statusText, body: content};
-        return await errorResponse(error, olderTimestamps);
+        return await errorResponse(error);
     }
 }
 
@@ -125,10 +144,33 @@ function forEveryTableRowCol(content, cb) {
 }
 
 /**
+ * Creates a record that includes summary stats, along with the regional data
+ */
+function createCaseCountRecord(regionalCaseCounts) {
+    const summaryCounts = {
+        "total": 0,
+        "confirmedCasesIndian": 0,
+        "confirmedCasesForeign": 0,
+        "discharged": 0,
+        "deaths": 0
+    };
+
+    for (let i=0; i<regionalCaseCounts.length; i++) {
+        summaryCounts["confirmedCasesIndian"] += regionalCaseCounts[i]["confirmedCasesIndian"];
+        summaryCounts["confirmedCasesForeign"] += regionalCaseCounts[i]["confirmedCasesForeign"];
+        summaryCounts["discharged"] += regionalCaseCounts[i]["discharged"];
+        summaryCounts["deaths"] += regionalCaseCounts[i]["deaths"];
+    }
+    summaryCounts["total"] = summaryCounts["confirmedCasesIndian"] + summaryCounts["confirmedCasesForeign"];
+
+    return { "summary": summaryCounts, "regional": regionalCaseCounts };
+}
+
+/**
  * Get the origin update information as mentioned in @content
  * @returns {number} milliseconds since epoch
  */
-function getOriginUpdate(content) {
+function getOriginUpdateTime(content) {
     const r = RegExp("as on (\\d{2})\.(\\d{2})\.(\\d{4}) at (\\d{2}):(\\d{2})\\s*([AP]M)", "gi");
     let m;
     if ((m = r.exec(content))) {
@@ -150,6 +192,9 @@ function getOriginUpdate(content) {
     }
 }
 
+/**
+ * Parse notifications from html content
+ */
 function getNotifications(content) {
     const notifications = [];
     const listRegex = RegExp("<li>(.+?)</li>", "g");
@@ -169,6 +214,68 @@ function getNotifications(content) {
         }
     }
     return notifications;
+}
+
+/**
+ * Get the sorted (oldest to latest) list of timestamps associated with historical case count records
+ */
+async function getCaseCountHistoricalTimestamps() {
+    let cursor = undefined;
+    const keys = [];
+    while (true) {
+        const keysResponse = await Store.list(getPrefixForHistoricalCaseCountKeys(), cursor);
+        for (let i=0; i<keysResponse.keys.length; i++) {
+            keys.push(getTimestampFromHistoricalCaseCountKey(keysResponse.keys[i].name));
+        }
+        if (keysResponse["list_complete"]) break;
+        else cursor = keysResponse.cursor;
+    }
+    return keys.sort()
+}
+
+/**
+ * Get an array of historical records - each entry representing the last record for that day
+ */
+async function getCaseCountTimeSeries(timestamps) {
+    const day2Timestamp = {};
+
+    // pick the last timestamp from each day
+    for (let i=0; i<timestamps.length; i++) {
+        const ts = timestamps[i];
+        const day = getDayFromTimestamp(ts);
+        const existingTimestamp = day2Timestamp[day];
+        if (!existingTimestamp || existingTimestamp.localeCompare(ts) < 0) day2Timestamp[day] = ts;
+    }
+
+    const recordTimestamps = Object.values(day2Timestamp);
+    const records = await Promise.all(
+        recordTimestamps.map(getCaseCountKeyForHistoricalTimestamp).map(k => Store.get(k, "json"))
+    );
+
+    const timeseries = [];
+    for (let i=0; i<recordTimestamps.length; i++) {
+        const recordForDay = createCaseCountRecord(records[i]);
+        timeseries.push({day: getDayFromTimestamp(recordTimestamps[i]), ...recordForDay});
+    }
+    return timeseries.sort((x,y) => x.day.localeCompare(y.day));
+}
+
+/**
+ * Parses an ISO8601 date format to get YYYY-MM-DD part
+ */
+function getDayFromTimestamp(timestamp) {
+    return timestamp.substr(0, 10);
+}
+
+/* Helper functions for historical record related key management */
+function getCaseCountKeyForHistoricalTimestamp(timestamp) {
+    return STORE_KEYS.CASE_COUNTS + "/" + timestamp;
+}
+function getTimestampFromHistoricalCaseCountKey(key) {
+    return key.split('/')[1];
+}
+function getPrefixForHistoricalCaseCountKeys() {
+    return STORE_KEYS.CASE_COUNTS + "/"
 }
 
 const SOURCE_URL = 'https://www.mohfw.gov.in';

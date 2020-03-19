@@ -1,4 +1,4 @@
-import { errorResponse, successResponse } from './api';
+import {errorResponse, rawResponse, successResponse} from './api';
 import { Store } from './store';
 import { STORE_KEYS } from './constants';
 
@@ -62,8 +62,8 @@ export async function refreshHospitalBeds(request, isDebugMode) {
             lastOriginUpdate
         };
 
-        await Store.put(STORE_KEYS.HOSPITAL_BEDS_COUNTS, JSON.stringify(data));
-        return await successResponse(
+        await Store.put(STORE_KEYS.CACHED_HOSPITAL_BEDS_COUNT, JSON.stringify(data));
+        return rawResponse(
             isDebugMode ? data : {  },
             Promise.all([Promise.resolve("0"), Promise.resolve("0")])
         );

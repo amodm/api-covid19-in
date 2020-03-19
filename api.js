@@ -5,7 +5,7 @@ export async function fetchTimestamps() {
     return Promise.all([Store.get(STORE_KEYS.LAST_REFRESHED), Store.get(STORE_KEYS.LAST_UPDATED_ORIGIN)]);
 }
 
-export async function rawResponse(data) {
+export function rawResponse(data) {
     return new Response(typeof data === 'string' ? data : JSON.stringify(data), { headers: standardHeaders });
 }
 
