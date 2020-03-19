@@ -37,13 +37,45 @@ async function updateDataFromCovid19IndiaOrg() {
 }
 
 /**
+ * Fetches statewise summarised data from mastersheet of covid19india.org
+ * https://docs.google.com/spreadsheets/d/1nzXUdaIWC84QipdVGUKTiCSc5xntBbpMpzLm6Si33zk/htmlview?sle=true#
+ */
+async function updateStatewiseDataFromCovid19IndiaOrg() {
+    const valueMapper = (hdr, value) => {
+        if (value === undefined) return undefined;
+
+        hdr = hdr.toLowerCase();
+        if (hdr.startsWith("state")) return ["state", value];
+        else if (hdr.startsWith("confirmed")) return ["confirmed", parseInt(value)];
+        else if (hdr.startsWith("recovered")) return ["recovered", parseInt(value)];
+        else if (hdr.startsWith("deaths")) return ["deaths", parseInt(value)];
+        else if (hdr.startsWith("active")) return ["active", parseInt(value)];
+    };
+    const sheetId = "1nzXUdaIWC84QipdVGUKTiCSc5xntBbpMpzLm6Si33zk";
+    const cellRange = "Statewise!A:E";
+    let data = await getGoogleSheetData(sheetId, cellRange, valueMapper);
+    let lastValidIndex = data.length;
+    while (lastValidIndex-- > 0) {
+        const record = data[lastValidIndex];
+        if (Object.keys(record).length > 1) break;
+    }
+    data = data.slice(0, lastValidIndex+1);
+    const totalEntry = data[0];
+    delete totalEntry["state"];
+    data = data.slice(1, data.length);
+    const statewiseResponse = { total: totalEntry, statewise: data };
+    updateUnofficialSource("covid19india.org", statewiseResponse, 'statewise');
+}
+
+/**
  * Update the unofficial source record in Workers KV
  */
-async function updateUnofficialSource(sourceId, data) {
+async function updateUnofficialSource(sourceId, data, suffix=undefined) {
     const finalData = {source: sourceId, lastRefreshed: new Date().toISOString(), ...data};
     const accountId = process.env['CF_ACCOUNT_ID'];
     const namespaceId = process.env['CF_NAMESPACE_ID'];
-    const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${namespaceId}/values/unofficial_src_${sourceId}`;
+    const key = suffix ? `unofficial_src_${sourceId}_${suffix}` : `unofficial_src_${sourceId}`;
+    const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${namespaceId}/values/${key}`;
     await fetch(url, {
         method: 'PUT',
         headers: {
@@ -99,3 +131,4 @@ function get_authorized_google_client() {
 }
 
 updateDataFromCovid19IndiaOrg();
+updateStatewiseDataFromCovid19IndiaOrg();

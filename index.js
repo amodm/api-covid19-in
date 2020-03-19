@@ -29,5 +29,6 @@ const routeHandlers = {
   '/notifications': getNotifications,
   '/unofficial/sources': getAllUnofficialSources,
   '/unofficial/covid19india.org': getUnofficialSource,
+  '/unofficial/covid19india.org/statewise': getUnofficialSource,
   '/refresh': refreshAllOfficialSources
 };
