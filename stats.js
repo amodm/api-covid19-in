@@ -3,7 +3,7 @@ import { STORE_KEYS } from "./constants";
 import {fetchTimestamps, rawResponse, successResponse} from "./api";
 
 export async function getHospitalCounts() {
-    return rawResponse(JSON.parse(await Store.get(STORE_KEYS.HOSPITAL_BEDS_COUNTS)));
+    return rawResponse(await Store.get(STORE_KEYS.HOSPITAL_BEDS_COUNTS));
 }
 
 /**

@@ -6,7 +6,7 @@ export async function fetchTimestamps() {
 }
 
 export async function rawResponse(data) {
-    return new Response(JSON.stringify(data), { headers: standardHeaders });
+    return new Response(typeof data === 'string' ? data : JSON.stringify(data), { headers: standardHeaders });
 }
 
 export async function successResponse(data, timestampsPromise) {
