@@ -29,7 +29,7 @@ export async function refreshHospitalBeds(request, isDebugMode) {
             const recordUpdated = getLastUpdated(content[i]["LastUpdated"]);
             if (src && !sources.find(x => x.url === src)) {
                 if (recordUpdated.localeCompare(maxTimestamp) > 0) maxTimestamp = recordUpdated;
-                sources.push({url: src, recordUpdated});
+                sources.push({url: src, lastUpdated: recordUpdated});
             }
             const ruralHospitals = "RuralHospitalsCount" in content[i] ? parseInt(content[i]["RuralHospitalsCount"]) : 0;
             const ruralBeds = "RuralBeds" in content[i] ? parseInt(content[i]["RuralBeds"]) : 0;
