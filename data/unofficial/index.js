@@ -17,6 +17,7 @@ async function updateDataFromCovid19IndiaOrg() {
         else if (hdr.includes("age")) return ["ageEstimate", value];
         else if (hdr.startsWith("gender")) return ["gender", value.toLowerCase()[0]==='m' ? 'male' : 'female'];
         else if (hdr.startsWith("detected city")) return ["city", value];
+        else if (hdr.startsWith("detected district")) return ["district", value];
         else if (hdr.startsWith("detected state")) return ["state", value];
         else if (hdr.startsWith("status")) return ["status", value];
         else if (hdr.startsWith("contracted from")) return ["contractedFrom", value];
