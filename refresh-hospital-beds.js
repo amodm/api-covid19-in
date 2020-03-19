@@ -57,7 +57,7 @@ export async function refreshHospitalBeds(request, isDebugMode) {
         const lastOriginUpdate = maxTimestamp;
         const data = {
             success: true,
-            data: {summary, regional: records},
+            data: {summary, sources, regional: records},
             lastRefreshed,
             lastOriginUpdate
         };
