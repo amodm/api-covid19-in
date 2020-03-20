@@ -30,7 +30,7 @@ async function updateDataFromCovid19IndiaOrg() {
     let lastValidIndex = data.length;
     while (lastValidIndex-- > 0) {
         const record = data[lastValidIndex];
-        if (Object.keys(record).length > 1) break;
+        if (Object.keys(record).length > 1 && record["patientId"] && record["reportedOn"]) break;
     }
     data = data.slice(0, lastValidIndex+1);
     updateUnofficialSource("covid19india.org", { summary: { total: data.length }, rawPatientData: data });
