@@ -44,12 +44,12 @@ async function updateStatewiseDataFromCovid19IndiaOrg() {
     const valueMapper = (hdr, value) => {
         if (value === undefined) return undefined;
 
-        hdr = hdr.toLowerCase();
-        if (hdr.startsWith("state")) return ["state", value];
-        else if (hdr.startsWith("confirmed")) return ["confirmed", parseInt(value)];
-        else if (hdr.startsWith("recovered")) return ["recovered", parseInt(value)];
-        else if (hdr.startsWith("deaths")) return ["deaths", parseInt(value)];
-        else if (hdr.startsWith("active")) return ["active", parseInt(value)];
+        hdr = hdr.toLowerCase().trim();
+        if (hdr === "state") return ["state", value];
+        else if (hdr === "confirmed") return ["confirmed", parseInt(value)];
+        else if (hdr === "recovered") return ["recovered", parseInt(value)];
+        else if (hdr === "deaths") return ["deaths", parseInt(value)];
+        else if (hdr === "active") return ["active", parseInt(value)];
     };
     const sheetId = "1nzXUdaIWC84QipdVGUKTiCSc5xntBbpMpzLm6Si33zk";
     const cellRange = "Statewise!A:E";
