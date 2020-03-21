@@ -34,7 +34,37 @@ async function updateDataFromCovid19IndiaOrg() {
         if (Object.keys(record).length > 1 && record["patientId"] && record["reportedOn"]) break;
     }
     data = data.slice(0, lastValidIndex+1);
+    await updateWithNlpData(data);
     updateUnofficialSource("covid19india.org", { summary: { total: data.length }, rawPatientData: data });
+}
+
+/**
+ * Update raw patient data using NLP from the API at http://coronatravelhistory.pythonanywhere.com/
+ * Github repo: https://github.com/NirantK/coronaindia
+ */
+async function updateWithNlpData(rawPatientData) {
+    const patientIdAndNotes = rawPatientData.map(x => ({patientId: `${x.patientId}`, notes: x.notes}));
+    const nlpResponse = await fetch("http://coronatravelhistory.pythonanywhere.com/", {
+        method: "POST",
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({patients: patientIdAndNotes})
+    });
+    if (nlpResponse.status === 200) {
+        const nlpJson = await nlpResponse.json();
+        const nlpPatients = nlpJson.patients;
+        for (let i=0; i<nlpPatients.length; i++) {
+            if (!nlpPatients[i]) continue;
+            const patientId = Object.keys(nlpPatients[i])[0];
+            const patientNlpData = nlpPatients[i][patientId];
+            const pidInt = parseInt(patientId);
+            const idx = rawPatientData.findIndex(x => x.patientId === pidInt);
+            if (idx >= 0) rawPatientData[idx] = {...rawPatientData[idx], ...patientNlpData};
+        }
+    } else {
+        throw "NLP service returned an error"
+    }
 }
 
 /**

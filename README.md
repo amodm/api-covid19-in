@@ -40,4 +40,5 @@ This is created using [Cloudflare Wrangler](https://github.com/cloudflare/wrangl
 #### Credits
 * Awesome team at [covid19india.org](https://www.covid19india.org/)
 * Hospital data API from [@NirantK](https://github.com/NirantK)
+* [NLP data API](https://github.com/NirantK/coronaindia) from [@meghanabhange](https://github.com/meghanabhange) and [@NirantK](https://github.com/NirantK)
 * [@GalacticMaster](https://github.com/GalacticMaster) for reporting updated contact details
