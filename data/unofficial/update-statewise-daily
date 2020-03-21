@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+set -e
+
+. .env
+
+HISTORICAL_URL="https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/storage/kv/namespaces/$CF_NAMESPACE_ID/values/cached_unofficial_src_covid19india.org_statewise_history"
+
+getJsonFromGoogleSheetsHistory() {
+  file="$1"
+  d="$2"
+  ./hack-historical-statewise.py $file $d | jq -c .
+}
+
+getLatestJson() {
+  curl -fsSL https://api.rootnet.in/covid19-in/unofficial/covid19india.org/statewise |\
+    jq '{"day": .data.lastRefreshed[0:10], "total":.data.total, "statewise": .data.statewise}'
+}
+
+getHistoricalJsonTillNow() {
+  today=$(TZ=UTC date '+%Y-%m-%d')
+  curl -fsSL -H "Authorization: Bearer $CF_API_TOKEN" "$HISTORICAL_URL" | jq ".data.history[] | select(.day != \"$today\")"
+}
+
+updateHistoricalJson() {
+  today=$(TZ=UTC date '+%Y-%m-%dT%H:%M:00.000Z')
+  json=$(echo "$1" | jq -c "{\"success\": true, \"data\": {\"source\": \"covid19india.org\", \"lastRefreshed\": \"$today\", \"history\":.}}")
+  curl -fsSL -XPUT -d "$json" -H "Content-Type: application/json; charset=utf-8" -H "Authorization: Bearer $CF_API_TOKEN" "$HISTORICAL_URL"
+}
+
+#updateHistoricalJson "$(for f in 14 15 16 17 18 19 20; do getJsonFromGoogleSheetsHistory "raw-googlesheets-history-copypaste-covid19india/$f-03" "2020-03-$f"; done | jq -sc .)"
+
+# Update using today's data
+updateHistoricalJson "$({ getHistoricalJsonTillNow; getLatestJson; } | jq -cs .)"
