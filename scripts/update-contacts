@@ -4,4 +4,4 @@ file="$1"
 lastOriginUpdate="$2"
 [ -z "$file" -o -z "$lastOriginUpdate" ] && echo "usage: $0 <contacts.json> <lastOriginUpdate>" >&2 && exit 1
 
-wrangler kv:key put 'cached_contacts' "$(cat $file | jq "{\"success\": true, \"data\":{\"contacts\":.}, \"lastRefreshed\":\"$(date '+%Y-%m-%dT%H:%M:00.000Z')\", \"lastOriginUpdate\": \"$lastOriginUpdate\"}")" -b COVID19
+wrangler kv:key put 'cached_contacts' "$(cat $file | jq -c "{\"success\": true, \"data\":{\"contacts\":.}, \"lastRefreshed\":\"$(date '+%Y-%m-%dT%H:%M:00.000Z')\", \"lastOriginUpdate\": \"$lastOriginUpdate\"}")" -b COVID19

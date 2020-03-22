@@ -33,7 +33,7 @@
         {"loc": "Rajasthan", "number": "+91-141-2225624"},
         {"loc": "Sikkim", "number": "104"},
         {"loc": "Tamil Nadu", "number": "+91-44-29510500"},
-        {"loc": "Telangana", "number": "104"},
+        {"loc": "Telengana", "number": "104"},
         {"loc": "Tripura", "number": "+91-381-2315879"},
         {"loc": "Uttarakhand", "number": "104"},
         {"loc": "Uttar Pradesh", "number": "18001805145"},
@@ -43,7 +43,7 @@
         {"loc": "Dadra and Nagar Haveli", "number": "104"},
         {"loc": "Daman & Diu", "number": "104"},
         {"loc": "Delhi", "number": "+91-11-22307145"},
-        {"loc": "Jammu & Kashmir", "number": "+91-191-2520982,+91-194-2440283"},
+        {"loc": "Jammu and Kashmir", "number": "+91-191-2520982,+91-194-2440283"},
         {"loc": "Ladakh", "number": "+91-1982-256462"},
         {"loc": "Lakshadweep", "number": "104"},
         {"loc": "Puducherry", "number": "104"}
