@@ -21,6 +21,9 @@ and separately from [unofficial sources](#unofficial-sources)
 #### Unofficial data
 * Unofficial sources: https://api.rootnet.in/covid19-in/unofficial/sources
 * Unofficial patient tracing data: https://api.rootnet.in/covid19-in/unofficial/covid19india.org
+* Unofficial statewise: https://api.rootnet.in/covid19-in/unofficial/covid19india.org/statewise
+* Unofficial statewise history: https://api.rootnet.in/covid19-in/unofficial/covid19india.org/statewise/history
+* Unofficial patient travel history: https://api.rootnet.in/covid19-in/unofficial/covid19india.org/travelhistory
 
 #### Maintenance
 * Refresh the data from source (maintainer only) https://api.rootnet.in/covid19-in/refresh
@@ -32,6 +35,8 @@ and separately from [unofficial sources](#unofficial-sources)
 
 ## Unofficial sources
 * The awesome volunteer driven patient tracing data [covid19india.org](https://www.covid19india.org/)
+* API (NLP): http://coronatravelhistory.pythonanywhere.com/
+* API (Travel history): https://api.covid19india.org/travel_history.json
 
 ## For contributors
 

@@ -157,6 +157,16 @@ async function getGoogleSheetData(spreadsheetId, range, valueMapper) {
     }
 }
 
+async function updateTravelHistoryFromCovid19IndiaOrg() {
+    const response = await fetch('https://api.covid19india.org/travel_history.json');
+    if (response.status === 200) {
+        const history = await response.json();
+        updateUnofficialSource("covid19india.org", history, 'travelhistory');
+    } else {
+        throw `failed to fetch travel history ${response.status} ${response.statusText}`
+    }
+}
+
 /**
  * Create an authorized Google OAuth2 client
  */
@@ -170,3 +180,4 @@ function get_authorized_google_client() {
 
 updateDataFromCovid19IndiaOrg();
 updateStatewiseDataFromCovid19IndiaOrg();
+updateTravelHistoryFromCovid19IndiaOrg();

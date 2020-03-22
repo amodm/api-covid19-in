@@ -47,5 +47,7 @@ const routeHandlers = {
       cachedData(STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org_statewise"),
   '/unofficial/covid19india.org/statewise/history': () =>
       cachedData(STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org_statewise_history"),
+  '/unofficial/covid19india.org/travelhistory': () =>
+      cachedData(STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org_travelhistory"),
   '/refresh': refreshAllOfficialSources
 };
