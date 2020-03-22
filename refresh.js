@@ -97,7 +97,10 @@ function getCaseCounts(content) {
     let deadIdx = -1;
     let isTotalRow = false;
     forEveryTableRowCol(content, (row, col, data) => {
-        if (row === 0) { // treat as header row
+        const headerRowInitialized = locNameIdx>=0 && confirmedIndianIdx>=0 && confirmedForeignIdx>=0
+            && dischargedIdx>=0 && deadIdx>=0;
+        console.log(`${row}:${col}:${headerRowInitialized} = ${data}`);
+        if (!headerRowInitialized) { // treat as header row
             const hdr = data.toLowerCase();
             if (hdr.includes("name")) locNameIdx = col;
             else if (hdr.includes("confirmed") && hdr.includes("indian")) confirmedIndianIdx = col;
@@ -105,7 +108,7 @@ function getCaseCounts(content) {
             else if (hdr.includes("discharged")) dischargedIdx = col;
             else if (hdr.includes("death")) deadIdx = col;
         }
-        else {
+        else if (headerRowInitialized) {
             if (!isTotalRow) isTotalRow = col === 0 && data.toLowerCase().trim().startsWith("total");
 
             if (!isTotalRow) {
@@ -127,10 +130,11 @@ function getCaseCounts(content) {
  * Iterates over all table rows in @content and invokes @cb with params as (row, col, cellData)
  */
 function forEveryTableRowCol(content, cb) {
+    let htmlContent = content.replace(/<!--.*?-->/gs, "");
     const rowRegex = RegExp("<tr[^>]*>.+?</tr", "gs");
     let rowMatch;
     let rowCount = 0;
-    while ((rowMatch = rowRegex.exec(content))) {
+    while ((rowMatch = rowRegex.exec(htmlContent))) {
         let colCount = 0;
         const colRegex = RegExp("<t[dh][^>]*>(.+?)</t[dh]>", "gs");
         let colMatch;
