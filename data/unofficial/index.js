@@ -2,10 +2,12 @@ require('dotenv').config({ path: `${__dirname}/.env` });
 const { google } = require('googleapis');
 const fetch = require("node-fetch");
 
+const COVID19_DATASHEET_ID = "1nzXUdaIWC84QipdVGUKTiCSc5xntBbpMpzLm6Si33zk";
+
 /**
  * Fetches data curated by covid19india.org
- * Old: https://docs.google.com/spreadsheets/d/1nzXUdaIWC84QipdVGUKTiCSc5xntBbpMpzLm6Si33zk/edit
- * New: https://docs.google.com/spreadsheets/d/1DqODDqNYxqEc2JhzTYuuWc7zMD2GEKR0Xz94D1gW0ek/edit
+ * Original: https://docs.google.com/spreadsheets/d/1nzXUdaIWC84QipdVGUKTiCSc5xntBbpMpzLm6Si33zk/edit
+ * Shadow: https://docs.google.com/spreadsheets/d/1DqODDqNYxqEc2JhzTYuuWc7zMD2GEKR0Xz94D1gW0ek/edit
  */
 async function updateDataFromCovid19IndiaOrg() {
     const valueMapper = (hdr, value) => {
@@ -25,7 +27,7 @@ async function updateDataFromCovid19IndiaOrg() {
         else if (hdr.startsWith("notes")) return ["notes", value];
         else if (hdr.startsWith("source")) return ["sources", [value]];
     };
-    const sheetId = "1DqODDqNYxqEc2JhzTYuuWc7zMD2GEKR0Xz94D1gW0ek";
+    const sheetId = COVID19_DATASHEET_ID;
     const cellRange = "Raw_Data!A:O";
     let data = await getGoogleSheetData(sheetId, cellRange, valueMapper);
     let lastValidIndex = data.length;
@@ -69,7 +71,6 @@ async function updateWithNlpData(rawPatientData) {
 
 /**
  * Fetches statewise summarised data from mastersheet of covid19india.org
- * https://docs.google.com/spreadsheets/d/1nzXUdaIWC84QipdVGUKTiCSc5xntBbpMpzLm6Si33zk/htmlview?sle=true#
  */
 async function updateStatewiseDataFromCovid19IndiaOrg() {
     const valueMapper = (hdr, value) => {
@@ -82,7 +83,7 @@ async function updateStatewiseDataFromCovid19IndiaOrg() {
         else if (hdr === "deaths") return ["deaths", parseInt(value)];
         else if (hdr === "active") return ["active", parseInt(value)];
     };
-    const sheetId = "1DqODDqNYxqEc2JhzTYuuWc7zMD2GEKR0Xz94D1gW0ek";
+    const sheetId = COVID19_DATASHEET_ID;
     const cellRange = "Statewise!A:E";
     let data = await getGoogleSheetData(sheetId, cellRange, valueMapper);
     let lastValidIndex = data.length;
