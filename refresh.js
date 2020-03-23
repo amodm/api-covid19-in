@@ -45,7 +45,7 @@ async function refreshCaseCounts(request, isDebugMode) {
         const historicalTimestamps = await getCaseCountHistoricalTimestamps();
         const isNewOriginUpdate = historicalTimestamps.length===0 ||
             curOriginUpdateMillis > new Date(historicalTimestamps[historicalTimestamps.length-1]).getTime();
-        if (isNewOriginUpdate) {
+        if (isNewOriginUpdate && !isDebugMode) {
             const ts = curOriginUpdateDate.toISOString();
             await Store.put(getCaseCountKeyForHistoricalTimestamp(ts), JSON.stringify(caseCounts));
         }
@@ -76,7 +76,7 @@ async function refreshCaseCounts(request, isDebugMode) {
         ]);
 
         await currentUpdatePromise;
-        return rawResponse(isDebugMode ? caseCounts : {  });
+        return rawResponse(isDebugMode ? currentCaseCountRecord : {  });
     }
     else {
         const error = {code: response.status, status: response.statusText, body: content};
@@ -96,10 +96,11 @@ function getCaseCounts(content) {
     let dischargedIdx = -1;
     let deadIdx = -1;
     let isTotalRow = false;
+    let totalIndian = 0;
+    let totalForeign = 0;
     forEveryTableRowCol(content, (row, col, data) => {
         const headerRowInitialized = locNameIdx>=0 && confirmedIndianIdx>=0 && confirmedForeignIdx>=0
             && dischargedIdx>=0 && deadIdx>=0;
-        console.log(`${row}:${col}:${headerRowInitialized} = ${data}`);
         if (!headerRowInitialized) { // treat as header row
             const hdr = data.toLowerCase();
             if (hdr.includes("name")) locNameIdx = col;
@@ -116,13 +117,26 @@ function getCaseCounts(content) {
                 const locData = caseCounts[caseCounts.length-1]; // use the last entry
 
                 if (col === locNameIdx) locData["loc"] = data;
-                else if (col === confirmedIndianIdx) locData["confirmedCasesIndian"] = parseInt(data.trim());
-                else if (col === confirmedForeignIdx) locData["confirmedCasesForeign"] = parseInt(data.trim());
+                else if (col === confirmedIndianIdx) {
+                    const v = parseInt(data.trim());
+                    totalIndian += v;
+                    locData["confirmedCasesIndian"] = v;
+                }
+                else if (col === confirmedForeignIdx) {
+                    const v = parseInt(data.trim());
+                    totalForeign += v;
+                    locData["confirmedCasesForeign"] = v;
+                }
                 else if (col === dischargedIdx) locData["discharged"] = parseInt(data.trim());
                 else if (col === deadIdx) locData["deaths"] = parseInt(data.trim());
             }
         }
     });
+    const totalIncludingUnidentified = getTotalIncludingUnconfirmedLocation(content);
+    const calculatedTotal = totalIndian + totalForeign;
+    if (totalIncludingUnidentified > 0 && totalIncludingUnidentified > calculatedTotal && totalIncludingUnidentified < calculatedTotal*3) {
+        caseCounts.push({loc: LOC_UNIDENTIFIED, confirmedCasesIndian: totalIncludingUnidentified - calculatedTotal});
+    }
     return caseCounts;
 }
 
@@ -156,18 +170,30 @@ function createCaseCountRecord(regionalCaseCounts) {
         "confirmedCasesIndian": 0,
         "confirmedCasesForeign": 0,
         "discharged": 0,
-        "deaths": 0
+        "deaths": 0,
+        "confirmedButLocationUnidentified": 0
     };
 
+    let unidentified = 0;
+    const displayedRegionalCaseCounts = [];
     for (let i=0; i<regionalCaseCounts.length; i++) {
-        summaryCounts["confirmedCasesIndian"] += regionalCaseCounts[i]["confirmedCasesIndian"];
-        summaryCounts["confirmedCasesForeign"] += regionalCaseCounts[i]["confirmedCasesForeign"];
-        summaryCounts["discharged"] += regionalCaseCounts[i]["discharged"];
-        summaryCounts["deaths"] += regionalCaseCounts[i]["deaths"];
+        if (regionalCaseCounts[i]["loc"] === LOC_UNIDENTIFIED ) {
+            unidentified = parseInt(regionalCaseCounts[i]["confirmedCasesIndian"]);
+        } else {
+            summaryCounts["confirmedCasesIndian"] += regionalCaseCounts[i]["confirmedCasesIndian"];
+            summaryCounts["confirmedCasesForeign"] += regionalCaseCounts[i]["confirmedCasesForeign"];
+            summaryCounts["discharged"] += regionalCaseCounts[i]["discharged"];
+            summaryCounts["deaths"] += regionalCaseCounts[i]["deaths"];
+            displayedRegionalCaseCounts.push(regionalCaseCounts[i]);
+        }
     }
     summaryCounts["total"] = summaryCounts["confirmedCasesIndian"] + summaryCounts["confirmedCasesForeign"];
+    if (unidentified > 0 ) {
+        summaryCounts["confirmedButLocationUnidentified"] = unidentified;
+        summaryCounts["total"] = summaryCounts["total"] + unidentified;
+    }
 
-    return { "summary": summaryCounts, "regional": regionalCaseCounts };
+    return { "summary": summaryCounts, "regional": displayedRegionalCaseCounts };
 }
 
 /**
@@ -191,6 +217,19 @@ function getOriginUpdateTime(content) {
         if (isPM) time = time + 12*3600*1000; // add 12 hrs if it's PM
 
         return time;
+    } else {
+        return 0;
+    }
+}
+
+/**
+ * Get the total count including unconfirmed location, as called out explicitly
+ */
+function getTotalIncludingUnconfirmedLocation(content) {
+    const r = RegExp("as on [^<]+?=\\s*(\\d+).*", "gs");
+    let m;
+    if ((m = r.exec(content))) {
+        return parseInt(m[1]);
     } else {
         return 0;
     }
@@ -283,3 +322,4 @@ function getPrefixForHistoricalCaseCountKeys() {
 }
 
 const SOURCE_URL = 'https://www.mohfw.gov.in';
+const LOC_UNIDENTIFIED = "unknown";
