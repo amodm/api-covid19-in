@@ -27,6 +27,21 @@ async function cachedData(key, applyLocHacks = false) {
   }
 }
 
+async function fromBlobStore(originUrl) {
+  // Fetch from origin server.
+  let response = await fetch(originUrl);
+
+  // Create an identity TransformStream (a.k.a. a pipe).
+  // The readable side will become our new response body.
+  let { readable, writable } = new TransformStream();
+
+  // Start pumping the body. NOTE: No await!
+  response.body.pipeTo(writable);
+
+  // ... and deliver our Response while that's running.
+  return new Response(readable, response)
+}
+
 function fixLocationNameChanges(content) {
   return content.replace(/Pondicherry/g, "Puducherry").replace(/Union Territory of /g, "");
 }
@@ -43,6 +58,10 @@ const routeHandlers = {
   '/unofficial/sources': getAllUnofficialSources,
   '/unofficial/covid19india.org': () =>
       cachedData(STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org"),
+  '/unofficial/covid19india.org/patientdb': () =>
+      cachedData(STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org"),
+  '/unofficial/covid19india.org/patientdb/history': () =>
+      fromBlobStore('https://covid19-data.rootnet.in/covid19india.org/patientdb-historical.json'),
   '/unofficial/covid19india.org/statewise': () =>
       cachedData(STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org_statewise"),
   '/unofficial/covid19india.org/statewise/history': () =>

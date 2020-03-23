@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+set -e
+
+DATA_GIT_DIR="$1"
+[ -z "$1" ] && echo "usage: $0 </path/to/amodm/covid19-data>" >&2 && exit 1
+[ ! -d "$DATA_GIT_DIR/.git" ] && echo "usage: $0 </path/to/amodm/covid19-data>" >&2 && exit 1
+
+cd "$DATA_GIT_DIR"
+DATA_DIR="covid19india.org"
+PREFIX="patientdb"
+
+# Update the repo
+git co .
+git clean -fd .
+git pull
+
+CURRENT_JSON="$DATA_DIR/$PREFIX-$(date '+%Y-%m-%d').json"
+HISTORICAL_JSON="$DATA_DIR/$PREFIX-historical.json"
+
+curl -fsSL "https://api.rootnet.in/covid19-in/unofficial/covid19india.org" | jq -c '.data | {"day": .lastRefreshed[0:10]} + . | del(.source)' > "$CURRENT_JSON"
+
+# Get the current timestamp
+NOW=$(TZ=UTC date '+%Y-%m-%dT%H:%M:%S.000Z')
+
+# If historical json is already present
+if [ -f "$HISTORICAL_JSON" ]; then
+    # Get the "day" as specified in current json
+    TODAY=$(cat "$CURRENT_JSON" | jq -r .day)
+    # Make sure that we have removed entry for today's day (as calculated in prev step)
+    cat "$HISTORICAL_JSON" | jq ".data[] | select(.day!=\"$TODAY\")" > "$HISTORICAL_JSON.raw"
+    # Create new hsitorical json by merging historical (after removing entry for today's date), and the current json
+    jq -sc "{\"success\": true, \"data\": ., \"lastRefreshed\": \"$NOW\"}" "$HISTORICAL_JSON.raw" "$CURRENT_JSON" > "$HISTORICAL_JSON" || rm -f "$HISTORICAL_JSON.raw"
+    # Remove temp file
+    rm -f "$HISTORICAL_JSON.raw"
+else
+    # Use today's json as historical
+    jq -sc "{\"success\": true, \"data\": ., \"lastRefreshed\": \"$NOW\"}" "$CURRENT_JSON" > "$HISTORICAL_JSON"
+fi
+
+git add "$DATA_DIR"
+git ci -m "Refreshing covid19india.org backups for $NOW"
+git push
+
