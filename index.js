@@ -24,7 +24,6 @@ function getRouteHandler(path) {
       if (path.startsWith(routePrefixes[i]) && longestPrefix.length < routePrefixes[i].length) {
         handler = routeHandlers[routePrefixes[i]];
         longestPrefix = routePrefixes[i];
-        console.log(`Using prefix ${longestPrefix}`);
       }
     }
   }
@@ -65,7 +64,6 @@ function fixLocationNameChanges(content) {
 
 async function getCovid19PatientDb(request, path) {
   path = path.replace(/^.+patientdb\/?/g, '');
-  console.log(`PATH=${path}`);
   if (path === '') return cachedData(STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org");
   else if (path === 'history') return fromBlobStore('https://covid19-data.rootnet.in/covid19india.org/patientdb-historical.json');
   else {
