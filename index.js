@@ -10,8 +10,25 @@ addEventListener('fetch', event => {
 
 async function handleRequest(request) {
   const path = new URL(request.url).pathname.substr(ROUTE_PREFIX.length);
-  const handler = routeHandlers[path] || notFoundHandler;
-  return handler(request, path)
+  const handler = getRouteHandler(path);
+  return handler(request, path);
+}
+
+function getRouteHandler(path) {
+  let handler = routeHandlers[path];
+  if (!handler) {
+    // get the handler with the longest matching prefix
+    const routePrefixes = Object.keys(routeHandlers);
+    let longestPrefix = "";
+    for (let i=0; i<routePrefixes.length; i++) {
+      if (path.startsWith(routePrefixes[i]) && longestPrefix.length < routePrefixes[i].length) {
+        handler = routeHandlers[routePrefixes[i]];
+        longestPrefix = routePrefixes[i];
+        console.log(`Using prefix ${longestPrefix}`);
+      }
+    }
+  }
+  return handler ? handler : notFoundHandler;
 }
 
 async function notFoundHandler() {
@@ -46,6 +63,26 @@ function fixLocationNameChanges(content) {
   return content.replace(/Pondicherry/g, "Puducherry").replace(/Union Territory of /g, "");
 }
 
+async function getCovid19PatientDb(request, path) {
+  path = path.replace(/^.+patientdb\/?/g, '');
+  console.log(`PATH=${path}`);
+  if (path === '') return cachedData(STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org");
+  else if (path === 'history') return fromBlobStore('https://covid19-data.rootnet.in/covid19india.org/patientdb-historical.json');
+  else {
+    let response = await fetch(`https://covid19-data.rootnet.in/covid19india.org/patientdb-${path}.json`);
+    if (response.status === 200) {
+      let data = await response.json();
+      return rawResponse(JSON.stringify({
+        success: true,
+        lastRefreshed: data.lastRefreshed,
+        data,
+      }))
+    } else {
+      return errorResponse({ message: response.statusText }, undefined, response.status);
+    }
+  }
+}
+
 const ROUTE_PREFIX = "/covid19-in";
 
 const routeHandlers = {
@@ -58,10 +95,7 @@ const routeHandlers = {
   '/unofficial/sources': getAllUnofficialSources,
   '/unofficial/covid19india.org': () =>
       cachedData(STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org"),
-  '/unofficial/covid19india.org/patientdb': () =>
-      cachedData(STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org"),
-  '/unofficial/covid19india.org/patientdb/history': () =>
-      fromBlobStore('https://covid19-data.rootnet.in/covid19india.org/patientdb-historical.json'),
+  '/unofficial/covid19india.org/patientdb': getCovid19PatientDb,
   '/unofficial/covid19india.org/statewise': () =>
       cachedData(STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org_statewise"),
   '/unofficial/covid19india.org/statewise/history': () =>
