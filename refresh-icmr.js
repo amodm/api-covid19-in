@@ -74,7 +74,7 @@ function getLastUpdated(content) {
     const year = parseInt(m[3]);
     const hour = parseInt(m[4]);
     const min = parseInt(m[5]);
-    return new Date(Date.UTC(year, month, day, hour, min, 0, 0) + 330*60*1000).toISOString();
+    return new Date(Date.UTC(year, month, day, hour, min, 0, 0) - 330*60*1000).toISOString();
 }
 
 const SOURCE_URL = "https://api.steinhq.com/v1/storages/5e6e3e9fb88d3d04ae08158c/ICMRTestData";
