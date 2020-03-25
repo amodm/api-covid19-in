@@ -3,6 +3,7 @@ import { getAllUnofficialSources } from "./unofficial";
 import {errorResponse, rawResponse} from "./api";
 import { Store } from "./store";
 import { STORE_KEYS } from "./constants";
+import {refreshTestingData} from "./refresh-icmr";
 
 addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request))
@@ -34,10 +35,10 @@ async function notFoundHandler() {
   return new Response('404 nothing to see here', { status: 404, statusText: 'Not Found' })
 }
 
-async function cachedData(key, applyLocHacks = false) {
+async function cachedData(key, decorator) {
   try {
     const data= await Store.get(key);
-    return rawResponse(applyLocHacks ? fixLocationNameChanges(data) : data);
+    return rawResponse(decorator ? decorator(data) : data);
   } catch (err) {
     return errorResponse({ "message": err })
   }
@@ -86,9 +87,21 @@ const ROUTE_PREFIX = "/covid19-in";
 const routeHandlers = {
   '/contacts': () => cachedData(STORE_KEYS.CACHED_CONTACTS),
   '/stats': () => cachedData(STORE_KEYS.CACHED_CASE_COUNTS),
-  '/stats/latest': () => cachedData(STORE_KEYS.CACHED_CASE_COUNTS, true),
-  '/stats/daily': () => cachedData(STORE_KEYS.CACHED_CASE_COUNTS_HISTORY, true),
+  '/stats/latest': () => cachedData(STORE_KEYS.CACHED_CASE_COUNTS, fixLocationNameChanges),
+  '/stats/daily': () => cachedData(STORE_KEYS.CACHED_CASE_COUNTS_HISTORY, fixLocationNameChanges),
+  '/stats/history': () => cachedData(STORE_KEYS.CACHED_CASE_COUNTS_HISTORY, fixLocationNameChanges),
   '/stats/hospitals': () => cachedData(STORE_KEYS.CACHED_HOSPITAL_BEDS_COUNT),
+  '/stats/testing/latest': () => cachedData(STORE_KEYS.CACHED_TESTING_HISTORY, data => {
+    const j = JSON.parse(data);
+    return {
+      success: j.success,
+      data: j.data[j.data.length-1],
+      lastRefreshed: j.lastRefreshed,
+      lastOriginUpdate: j.lastOriginUpdate
+    }
+  }),
+  '/stats/testing/history': () => cachedData(STORE_KEYS.CACHED_TESTING_HISTORY),
+  '/stats/testing/raw': () => cachedData(STORE_KEYS.CACHED_TESTING_HISTORY_RAW),
   '/notifications': () => cachedData(STORE_KEYS.CACHED_NOTIFICATIONS),
   '/unofficial/sources': getAllUnofficialSources,
   '/unofficial/covid19india.org': () =>
@@ -100,5 +113,6 @@ const routeHandlers = {
       cachedData(STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org_statewise_history"),
   '/unofficial/covid19india.org/travelhistory': () =>
       cachedData(STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org_travelhistory"),
-  '/refresh': refreshAllOfficialSources
+  '/refresh': refreshAllOfficialSources,
+  '/refresh/testing': refreshTestingData
 };

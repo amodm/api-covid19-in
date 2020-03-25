@@ -12,8 +12,13 @@ and separately from [unofficial sources](#unofficial-sources)
 ## API
 
 #### Official data
-* Stats: https://api.rootnet.in/covid19-in/stats/latest
-* Stats as a daily series: https://api.rootnet.in/covid19-in/stats/daily
+* Case counts:
+  * https://api.rootnet.in/covid19-in/stats/latest
+  * https://api.rootnet.in/covid19-in/stats/history
+* Testing stats:
+  * https://api.rootnet.in/covid19-in/stats/testing/latest
+  * https://api.rootnet.in/covid19-in/stats/testing/history
+  * https://api.rootnet.in/covid19-in/stats/testing/raw
 * Hospitals & bed stats: https://api.rootnet.in/covid19-in/stats/hospitals
 * Contact & helpline: https://api.rootnet.in/covid19-in/contacts
 * Notifications & advisories: https://api.rootnet.in/covid19-in/notifications
@@ -32,6 +37,7 @@ and separately from [unofficial sources](#unofficial-sources)
 * Post Mar 15, data is from [The Ministry of Health & Family Welfare](https://www.mohfw.gov.in/)
 * Pre  Mar 15, data is sourced from [datameet/covid19](https://github.com/datameet/covid19/tree/eb1cc65657929abe12ca59f0e754bef4bc562d7a/mohfw-backup)
 * Hospital & bed data: https://api.steinhq.com/v1/storages/5e732accb88d3d04ae0815ae/StateWiseHealthCapacity
+* ICMR testing stats API: https://api.steinhq.com/v1/storages/5e6e3e9fb88d3d04ae08158c/ICMRTestData
 
 ## Unofficial sources
 * The awesome volunteer driven patient tracing data [covid19india.org](https://www.covid19india.org/)
@@ -45,5 +51,6 @@ This is created using [Cloudflare Wrangler](https://github.com/cloudflare/wrangl
 #### Credits
 * Awesome team at [covid19india.org](https://www.covid19india.org/)
 * Hospital data API from [@NirantK](https://github.com/NirantK)
+* ICMR testing data API from [@NirantK](https://github.com/NirantK)
 * [NLP data API](https://github.com/NirantK/coronaindia) from [@meghanabhange](https://github.com/meghanabhange) and [@NirantK](https://github.com/NirantK)
 * [@GalacticMaster](https://github.com/GalacticMaster) for reporting updated contact details
