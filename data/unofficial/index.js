@@ -36,7 +36,13 @@ async function updateDataFromCovid19IndiaOrg() {
         if (Object.keys(record).length > 1 && record["patientId"] && record["reportedOn"]) break;
     }
     data = data.slice(0, lastValidIndex+1);
-    await updateWithNlpData(data);
+
+    // update with NLP data using batches so as to not overload the NLP system
+    const batchSize = 500;
+    for (let i=0; i<data.length; i+=batchSize) {
+        await updateWithNlpData(data.slice(i, Math.min(data.length, i+batchSize)));
+    }
+
     updateUnofficialSource("covid19india.org", { summary: { total: data.length }, rawPatientData: data });
 }
 
@@ -56,13 +62,17 @@ async function updateWithNlpData(rawPatientData) {
     if (nlpResponse.status === 200) {
         const nlpJson = await nlpResponse.json();
         const nlpPatients = nlpJson.patients;
-        for (let i=0; i<nlpPatients.length; i++) {
-            if (!nlpPatients[i]) continue;
-            const patientId = Object.keys(nlpPatients[i])[0];
-            const patientNlpData = nlpPatients[i][patientId];
-            const pidInt = parseInt(patientId);
-            const idx = rawPatientData.findIndex(x => x.patientId === pidInt);
-            if (idx >= 0) rawPatientData[idx] = {...rawPatientData[idx], ...patientNlpData};
+        if (!nlpPatients || !Array.isArray(nlpPatients)) {
+            //console.log(nlpPatients);
+        } else {
+            for (let i=0; i<nlpPatients.length; i++) {
+                if (!nlpPatients[i]) continue;
+                const patientId = Object.keys(nlpPatients[i])[0];
+                const patientNlpData = nlpPatients[i][patientId];
+                const pidInt = parseInt(patientId);
+                const idx = rawPatientData.findIndex(x => x.patientId === pidInt);
+                if (idx >= 0) rawPatientData[idx] = {...rawPatientData[idx], ...patientNlpData};
+            }
         }
     } else {
         throw "NLP service returned an error"
@@ -179,5 +189,5 @@ function get_authorized_google_client() {
 }
 
 updateDataFromCovid19IndiaOrg();
-updateStatewiseDataFromCovid19IndiaOrg();
-updateTravelHistoryFromCovid19IndiaOrg();
+//updateStatewiseDataFromCovid19IndiaOrg();
+//updateTravelHistoryFromCovid19IndiaOrg();
