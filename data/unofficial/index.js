@@ -189,5 +189,5 @@ function get_authorized_google_client() {
 }
 
 updateDataFromCovid19IndiaOrg();
-//updateStatewiseDataFromCovid19IndiaOrg();
-//updateTravelHistoryFromCovid19IndiaOrg();
+updateStatewiseDataFromCovid19IndiaOrg();
+updateTravelHistoryFromCovid19IndiaOrg();
