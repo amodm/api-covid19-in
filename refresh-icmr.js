@@ -70,7 +70,7 @@ function getLastUpdated(content) {
     if (!m || m.length !== 6) return "1970-01-01T00:00:00.000Z";
 
     const day = parseInt(m[1]);
-    const month = parseInt(m[2]);
+    const month = parseInt(m[2])-1;
     const year = parseInt(m[3]);
     const hour = parseInt(m[4]);
     const min = parseInt(m[5]);
