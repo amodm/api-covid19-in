@@ -28,7 +28,14 @@ updateHistoricalJson() {
   curl -fsSL -XPUT -d "$json" -H "Content-Type: application/json; charset=utf-8" -H "Authorization: Bearer $CF_API_TOKEN" "$HISTORICAL_URL"
 }
 
-#updateHistoricalJson "$(for f in 14 15 16 17 18 19 20; do getJsonFromGoogleSheetsHistory "raw-googlesheets-history-copypaste-covid19india/$f-03" "2020-03-$f"; done | jq -sc .)"
+getPriorData() {
+  for f in 14 15 16 17 18 19 20 21 22 23; do
+    getJsonFromGoogleSheetsHistory "raw-googlesheets-history-copypaste-covid19india/$f-03" "2020-03-$f"
+  done
+  cat raw-googlesheets-history-copypaste-covid19india/statewise-history-03-29.json | jq -c '.data.history[]'
+}
+
+#updateHistoricalJson "$(getPriorData | jq -sc .)"
 
 # Update using today's data
 updateHistoricalJson "$({ getHistoricalJsonTillNow; getLatestJson; } | jq -cs .)"
