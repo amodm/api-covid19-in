@@ -65,7 +65,7 @@ function getPerDayRecords(rawRecords) {
 }
 
 function getLastUpdated(content) {
-    const r = RegExp("(\\d+)/(\\d+)/(\\d+) (\\d{1,2}):(\\d{1,2})");
+    const r = RegExp("(\\d+)/(\\d+)/(\\d+) (\\d{1,2})[:.](\\d{1,2})");
     const m = content.match(r);
     if (!m || m.length !== 6) return "1970-01-01T00:00:00.000Z";
 
