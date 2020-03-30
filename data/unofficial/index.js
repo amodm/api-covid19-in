@@ -63,7 +63,7 @@ async function updateWithNlpData(rawPatientData) {
         const nlpJson = await nlpResponse.json();
         const nlpPatients = nlpJson.patients;
         if (!nlpPatients || !Array.isArray(nlpPatients)) {
-            //console.log(nlpPatients);
+            console.log(nlpPatients);
         } else {
             for (let i=0; i<nlpPatients.length; i++) {
                 if (!nlpPatients[i]) continue;
