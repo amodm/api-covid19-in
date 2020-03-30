@@ -39,11 +39,14 @@ async function updateDataFromCovid19IndiaOrg() {
 
     // update with NLP data using batches so as to not overload the NLP system
     const batchSize = 500;
+    let datacopy = [];
     for (let i=0; i<data.length; i+=batchSize) {
-        await updateWithNlpData(data.slice(i, Math.min(data.length, i+batchSize)));
+        const batch = data.slice(i, Math.min(data.length, i+batchSize));
+        await updateWithNlpData(batch);
+        datacopy = datacopy.concat(batch);
     }
 
-    updateUnofficialSource("covid19india.org", { summary: { total: data.length }, rawPatientData: data });
+    updateUnofficialSource("covid19india.org", { summary: { total: data.length }, rawPatientData: datacopy });
 }
 
 /**
