@@ -217,7 +217,7 @@ function getOriginUpdateTime(content) {
     let m;
     if ((m = r.exec(content))) {
         const day = parseInt(m[1]);
-        const month = parseInt(m[2])-1;
+        const month = parseInt(m[2]) - 1;
         const year = parseInt(m[3]);
         const hour = parseInt(m[4]);
         const minute = parseInt(m[5]);
@@ -225,10 +225,20 @@ function getOriginUpdateTime(content) {
 
         // use UTC to be consistent irrespective of TZ in which this is being executed
         let time = Date.UTC(year, month, day, hour, minute, 0, 0);
-        time = time - 330*60*1000; // roll it back by 5:30hrs to capture it as IST
-        if (isPM) time = time + 12*3600*1000; // add 12 hrs if it's PM
+        time = time - 330 * 60 * 1000; // roll it back by 5:30hrs to capture it as IST
+        if (isPM) time = time + 12 * 3600 * 1000; // add 12 hrs if it's PM
 
         return time;
+    } else if ((m = RegExp("as on[ :]+(\\d{2})\\s+([a-zA-Z]+)\\s+(\\d{4})[, ]+(\\d{2}):(\\d{2})", "gi").exec(content))) {
+        const day = parseInt(m[1]);
+        const month3 = m[2].substr(0, 3);
+        const month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].findIndex(x => x === month3);
+        const year = parseInt(m[3]);
+        const hour = parseInt(m[4]);
+        const minute = parseInt(m[5]);
+        // use UTC to be consistent irrespective of TZ in which this is being executed
+        let time = Date.UTC(year, month, day, hour, minute, 0, 0);
+        return time - 330 * 60 * 1000; // roll it back by 5:30hrs to capture it as IST
     } else {
         return 0;
     }
