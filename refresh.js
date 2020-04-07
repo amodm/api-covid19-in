@@ -40,6 +40,13 @@ async function refreshCaseCounts(request, isDebugMode) {
         // extract data from html content
         const notifications = getNotifications(content);
         const currentCaseCountRecord = createCaseCountRecord(caseCounts);
+        const numForeign = getTotalConfirmedForeignCases(content);
+        // fix the total number of foreign cases
+        if (numForeign && numForeign > currentCaseCountRecord.summary.confirmedCasesForeign) {
+            const f = currentCaseCountRecord.summary.confirmedCasesForeign;
+            currentCaseCountRecord.summary.confirmedCasesForeign = numForeign;
+            currentCaseCountRecord.summary.confirmedCasesIndian -= (numForeign-f);
+        }
 
         // if we detect a new origin update, also update the historical timestamped record
         const historicalTimestamps = await getCaseCountHistoricalTimestamps();
@@ -139,6 +146,9 @@ function getCaseCounts(content) {
     }
 
     // deal with shitty updates from MoHFW by capturing the last proper update of confirmedCasesForeign
+    //
+    // we now get only confirmedCases from MoHFW, without any breakdown of indian vs foreign cases, so we use the last
+    // snapshot of breakdown to calculate the best estimate of foreign cases, while still keeping the total correct
     const lastForeignUpdate = [{"loc":"Andhra Pradesh","confirmedCasesIndian":14,"confirmedCasesForeign":0,"discharged":1,"deaths":0},{"loc":"Andaman and Nicobar Islands","confirmedCasesIndian":9,"confirmedCasesForeign":0,"discharged":0,"deaths":0},{"loc":"Bihar","confirmedCasesIndian":9,"confirmedCasesForeign":0,"discharged":0,"deaths":1},{"loc":"Chandigarh","confirmedCasesIndian":8,"confirmedCasesForeign":0,"discharged":0,"deaths":0},{"loc":"Chhattisgarh","confirmedCasesIndian":6,"confirmedCasesForeign":0,"discharged":0,"deaths":0},{"loc":"Delhi","confirmedCasesIndian":38,"confirmedCasesForeign":1,"discharged":6,"deaths":2},{"loc":"Goa","confirmedCasesIndian":2,"confirmedCasesForeign":1,"discharged":0,"deaths":0},{"loc":"Gujarat","confirmedCasesIndian":52,"confirmedCasesForeign":1,"discharged":0,"deaths":4},{"loc":"Haryana","confirmedCasesIndian":19,"confirmedCasesForeign":14,"discharged":12,"deaths":0},{"loc":"Himachal Pradesh","confirmedCasesIndian":3,"confirmedCasesForeign":0,"discharged":0,"deaths":1},{"loc":"Jammu and Kashmir","confirmedCasesIndian":31,"confirmedCasesForeign":0,"discharged":1,"deaths":1},{"loc":"Karnataka","confirmedCasesIndian":76,"confirmedCasesForeign":0,"discharged":5,"deaths":3},{"loc":"Kerala","confirmedCasesIndian":174,"confirmedCasesForeign":8,"discharged":15,"deaths":1},{"loc":"Ladakh","confirmedCasesIndian":13,"confirmedCasesForeign":0,"discharged":3,"deaths":0},{"loc":"Madhya Pradesh","confirmedCasesIndian":30,"confirmedCasesForeign":0,"discharged":0,"deaths":2},{"loc":"Maharashtra","confirmedCasesIndian":183,"confirmedCasesForeign":3,"discharged":25,"deaths":6},{"loc":"Manipur","confirmedCasesIndian":1,"confirmedCasesForeign":0,"discharged":0,"deaths":0},{"loc":"Mizoram","confirmedCasesIndian":1,"confirmedCasesForeign":0,"discharged":0,"deaths":0},{"loc":"Odisha","confirmedCasesIndian":3,"confirmedCasesForeign":0,"discharged":0,"deaths":0},{"loc":"Puducherry","confirmedCasesIndian":1,"confirmedCasesForeign":0,"discharged":0,"deaths":0},{"loc":"Punjab","confirmedCasesIndian":38,"confirmedCasesForeign":0,"discharged":1,"deaths":1},{"loc":"Rajasthan","confirmedCasesIndian":52,"confirmedCasesForeign":2,"discharged":3,"deaths":0},{"loc":"Tamil Nadu","confirmedCasesIndian":36,"confirmedCasesForeign":6,"discharged":2,"deaths":1},{"loc":"Telengana","confirmedCasesIndian":56,"confirmedCasesForeign":10,"discharged":1,"deaths":1},{"loc":"Uttarakhand","confirmedCasesIndian":5,"confirmedCasesForeign":1,"discharged":1,"deaths":0},{"loc":"Uttar Pradesh","confirmedCasesIndian":54,"confirmedCasesForeign":1,"discharged":11,"deaths":0},{"loc":"West Bengal","confirmedCasesIndian":17,"confirmedCasesForeign":0,"discharged":0,"deaths":1}];
     caseCounts.forEach(x => {
         const lastF = lastForeignUpdate.find(e => e.loc === x.loc);
@@ -194,6 +204,7 @@ function createCaseCountRecord(regionalCaseCounts) {
         } else {
             summaryCounts["confirmedCasesIndian"] += regionalCaseCounts[i]["confirmedCasesIndian"];
             summaryCounts["confirmedCasesForeign"] += regionalCaseCounts[i]["confirmedCasesForeign"];
+            regionalCaseCounts[i]["totalConfirmed"] = regionalCaseCounts[i]["confirmedCasesIndian"] + regionalCaseCounts[i]["confirmedCasesForeign"];
             summaryCounts["discharged"] += regionalCaseCounts[i]["discharged"];
             summaryCounts["deaths"] += regionalCaseCounts[i]["deaths"];
             displayedRegionalCaseCounts.push(regionalCaseCounts[i]);
@@ -206,6 +217,19 @@ function createCaseCountRecord(regionalCaseCounts) {
     }
 
     return { "summary": summaryCounts, "regional": displayedRegionalCaseCounts };
+}
+
+/**
+ * Parse the MoHFW site content for total number of confirmed foreign cases
+ */
+function getTotalConfirmedForeignCases(content) {
+    const r = RegExp(" (\\d+) foreign Nationals", "gi");
+    let m;
+    if ((m = r.exec(content))) {
+        return parseInt(m[1]);
+    } else {
+        return 0;
+    }
 }
 
 /**
