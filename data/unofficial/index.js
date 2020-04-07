@@ -18,7 +18,7 @@ async function updateDataFromCovid19IndiaOrg() {
         else if (hdr.startsWith("date")) return ["reportedOn", value];
         else if (hdr.startsWith("estimated")) return ["onsetEstimate", value];
         else if (hdr.includes("age")) return ["ageEstimate", value];
-        else if (hdr.startsWith("gender")) return ["gender", value.toLowerCase()[0]==='m' ? 'male' : 'female'];
+        else if (hdr.startsWith("gender")) return ["gender", value.toLowerCase()[0]==='m' ? 'male' : value.toLowerCase()[0] === 'f' ? 'female' : ''];
         else if (hdr.startsWith("detected city")) return ["city", value];
         else if (hdr.startsWith("detected district")) return ["district", value];
         else if (hdr.startsWith("detected state")) return ["state", value];
