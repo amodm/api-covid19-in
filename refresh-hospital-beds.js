@@ -2,11 +2,21 @@ import { errorResponse, rawResponse } from './api';
 import { Store } from './store';
 import { STORE_KEYS } from './constants';
 
-/**
- * Fetches data from @SOURCE_URL and caches it
- */
 export async function refreshHospitalBeds(request, isDebugMode) {
-    const response = await fetch(SOURCE_URL);
+    const response1 = await refreshBedCountsStatewise(request, isDebugMode);
+    const response2 = await refreshMedicalColleges(request, isDebugMode);
+
+    // TODO:amodm:figure out a better way to return a composite
+    if (response1.status !== 200) return response1;
+    if (response2.status !== 200) return response2;
+    return response1;
+}
+
+/**
+ * Fetches data from @SOURCE_URL_STATEWISE and caches it
+ */
+async function refreshBedCountsStatewise(request, isDebugMode) {
+    const response = await fetch(SOURCE_URL_STATEWISE);
     const content = (await response.json());
     if (response.status === 200) {
         if (!Array.isArray(content) || content.length === 0) {
@@ -63,15 +73,57 @@ export async function refreshHospitalBeds(request, isDebugMode) {
         };
 
         await Store.put(STORE_KEYS.CACHED_HOSPITAL_BEDS_COUNT, JSON.stringify(data));
-        return rawResponse(
-            isDebugMode ? data : {  },
-            Promise.all([Promise.resolve("0"), Promise.resolve("0")])
-        );
+        return rawResponse(isDebugMode ? data : {});
     }
     else {
         const error = {code: response.status, status: response.statusText, body: content};
         return await errorResponse(error);
     }
+}
+
+/**
+ * Fetches data from @SOURCE_URL_MEDICAL_COLLEGES and caches it
+ */
+async function refreshMedicalColleges(request, isDebugMode) {
+    const response = await fetch(SOURCE_URL_MEDICAL_COLLEGES);
+    const content = (await response.json());
+    if (response.status === 200) {
+        if (!Array.isArray(content) || content.length === 0) {
+            return await errorResponse({"error": "response not an array"});
+        }
+
+        const medicalColleges = content.map(x => ({
+            state: x["State/UT"],
+            name: x["MedicalCollegeName"],
+            city: x["City/Town"],
+            ownership: x["Govt/Private"],
+            admissionCapacity: parseValidInt(x["AdmissionCapacity"]),
+            hospitalBeds: parseValidInt(x["BedsInAttachedHospital"])
+        }));
+
+        const lastRefreshed = new Date().toISOString();
+        const lastOriginUpdate = lastRefreshed;
+        const data = {
+            success: true,
+            data: {
+                medicalColleges,
+                sources: ["http://www.indiaenvironmentportal.org.in/files/file/NHP%202018.pdf"]
+            },
+            lastRefreshed,
+            lastOriginUpdate
+        };
+
+        await Store.put(STORE_KEYS.CACHED_MEDICAL_COLLEGES, JSON.stringify(data));
+        return rawResponse(isDebugMode ? data : {});
+    }
+    else {
+        const error = {code: response.status, status: response.statusText, body: content};
+        return await errorResponse(error);
+    }
+}
+
+function parseValidInt(s) {
+    return (s && s.match(/^\d+$/g)) ? parseInt(s) : 0
 }
 
 function getLastUpdated(content) {
@@ -83,4 +135,5 @@ function getLastUpdated(content) {
     return `${m[1]}T${hhmmss}.000Z`;
 }
 
-const SOURCE_URL = "https://api.steinhq.com/v1/storages/5e732accb88d3d04ae0815ae/StateWiseHealthCapacity";
+const SOURCE_URL_STATEWISE = "https://api.steinhq.com/v1/storages/5e732accb88d3d04ae0815ae/StateWiseHealthCapacity";
+const SOURCE_URL_MEDICAL_COLLEGES = "https://api.steinhq.com/v1/storages/5e6e3e9fb88d3d04ae08158c/Hospitals";

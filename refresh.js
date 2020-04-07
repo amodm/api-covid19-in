@@ -14,9 +14,9 @@ export async function refreshAllOfficialSources(request) {
     if (onlyCaseCounts) return await refreshCaseCounts(request, isDebugMode);
     else if (onlyHospitals) return await refreshHospitalBeds(request, isDebugMode);
     else {
-        return await refreshCaseCounts(request, isDebugMode);
-        //await refreshHospitalBeds(request, isDebugMode);
-        // return rawResponse({});
+        await refreshCaseCounts(request, isDebugMode);
+        await refreshHospitalBeds(request, isDebugMode);
+        return rawResponse({});
     }
 }
 

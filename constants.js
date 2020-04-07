@@ -5,6 +5,7 @@ export const STORE_KEYS = {
     CACHED_CASE_COUNTS: "cached_case_counts",
     CACHED_CASE_COUNTS_HISTORY: "cached_case_counts_history",
     CACHED_HOSPITAL_BEDS_COUNT: "cached_hospital_beds_count",
+    CACHED_MEDICAL_COLLEGES: "cached_medical_colleges",
     CACHED_TESTING_HISTORY: "cached_testing_history",
     CACHED_TESTING_HISTORY_RAW: "cached_testing_history_raw",
     CACHED_CONTACTS: "cached_contacts",

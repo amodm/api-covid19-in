@@ -102,6 +102,8 @@ const routeHandlers = {
   }),
   '/stats/testing/history': () => cachedData(STORE_KEYS.CACHED_TESTING_HISTORY),
   '/stats/testing/raw': () => cachedData(STORE_KEYS.CACHED_TESTING_HISTORY_RAW),
+  '/hospitals/beds': () => cachedData(STORE_KEYS.CACHED_HOSPITAL_BEDS_COUNT),
+  '/hospitals/medical-colleges': () => cachedData(STORE_KEYS.CACHED_MEDICAL_COLLEGES),
   '/notifications': () => cachedData(STORE_KEYS.CACHED_NOTIFICATIONS),
   '/unofficial/sources': getAllUnofficialSources,
   '/unofficial/covid19india.org': () =>
