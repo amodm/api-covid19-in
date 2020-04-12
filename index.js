@@ -35,10 +35,13 @@ async function notFoundHandler() {
   return new Response('404 nothing to see here', { status: 404, statusText: 'Not Found' })
 }
 
-async function cachedData(key, decorator) {
+async function cachedData(request, key, decorator) {
+  const isBrowser = (request.headers.get("accept") || "").toLowerCase().includes("html");
   try {
-    const data= await Store.get(key);
-    return rawResponse(decorator ? decorator(data) : data);
+    let data= await Store.get(key);
+    if (decorator) data = decorator(data);
+    if (isBrowser) data = JSON.stringify(typeof data === 'string' ? JSON.parse(data) : data, null, 2);
+    return rawResponse(data);
   } catch (err) {
     return errorResponse({ "message": err })
   }
@@ -65,7 +68,7 @@ function fixLocationNameChanges(content) {
 
 async function getCovid19PatientDb(request, path) {
   path = path.replace(/^.+patientdb\/?/g, '');
-  if (path === '') return cachedData(STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org");
+  if (path === '') return cachedData(request, STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org");
   else if (path === 'history') return fromBlobStore('https://covid19-data.rootnet.in/covid19india.org/patientdb-historical.json');
   else {
     let response = await fetch(`https://covid19-data.rootnet.in/covid19india.org/patientdb-${path}.json`);
@@ -85,36 +88,36 @@ async function getCovid19PatientDb(request, path) {
 const ROUTE_PREFIX = "/covid19-in";
 
 const routeHandlers = {
-  '/contacts': () => cachedData(STORE_KEYS.CACHED_CONTACTS),
-  '/stats': () => cachedData(STORE_KEYS.CACHED_CASE_COUNTS),
-  '/stats/latest': () => cachedData(STORE_KEYS.CACHED_CASE_COUNTS, fixLocationNameChanges),
-  '/stats/daily': () => cachedData(STORE_KEYS.CACHED_CASE_COUNTS_HISTORY, fixLocationNameChanges),
-  '/stats/history': () => cachedData(STORE_KEYS.CACHED_CASE_COUNTS_HISTORY, fixLocationNameChanges),
-  '/stats/hospitals': () => cachedData(STORE_KEYS.CACHED_HOSPITAL_BEDS_COUNT),
-  '/stats/testing/latest': () => cachedData(STORE_KEYS.CACHED_TESTING_HISTORY, data => {
+  '/contacts': (request) => cachedData(request, STORE_KEYS.CACHED_CONTACTS),
+  '/stats': (request) => cachedData(request, STORE_KEYS.CACHED_CASE_COUNTS),
+  '/stats/latest': (request) => cachedData(request, STORE_KEYS.CACHED_CASE_COUNTS, fixLocationNameChanges),
+  '/stats/daily': (request) => cachedData(request, STORE_KEYS.CACHED_CASE_COUNTS_HISTORY, fixLocationNameChanges),
+  '/stats/history': (request) => cachedData(request, STORE_KEYS.CACHED_CASE_COUNTS_HISTORY, fixLocationNameChanges),
+  '/stats/hospitals': (request) => cachedData(request, STORE_KEYS.CACHED_HOSPITAL_BEDS_COUNT),
+  '/stats/testing/latest': (request) => cachedData(request, STORE_KEYS.CACHED_TESTING_HISTORY, data => {
     const j = JSON.parse(data);
     return {
       success: j.success,
-      data: j.data[j.data.length-1],
+      data: (j.data && j.data.length > 0) ? j.data[j.data.length-1] : {},
       lastRefreshed: j.lastRefreshed,
       lastOriginUpdate: j.lastOriginUpdate
     }
   }),
-  '/stats/testing/history': () => cachedData(STORE_KEYS.CACHED_TESTING_HISTORY),
-  '/stats/testing/raw': () => cachedData(STORE_KEYS.CACHED_TESTING_HISTORY_RAW),
-  '/hospitals/beds': () => cachedData(STORE_KEYS.CACHED_HOSPITAL_BEDS_COUNT),
-  '/hospitals/medical-colleges': () => cachedData(STORE_KEYS.CACHED_MEDICAL_COLLEGES),
-  '/notifications': () => cachedData(STORE_KEYS.CACHED_NOTIFICATIONS),
-  '/unofficial/sources': getAllUnofficialSources,
-  '/unofficial/covid19india.org': () =>
-      cachedData(STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org"),
-  '/unofficial/covid19india.org/patientdb': getCovid19PatientDb,
-  '/unofficial/covid19india.org/statewise': () =>
-      cachedData(STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org_statewise"),
-  '/unofficial/covid19india.org/statewise/history': () =>
-      cachedData(STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org_statewise_history"),
-  '/unofficial/covid19india.org/travelhistory': () =>
-      cachedData(STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org_travelhistory"),
-  '/refresh': refreshAllOfficialSources,
-  '/refresh/testing': refreshTestingData
+  '/stats/testing/history': (request) => cachedData(request, STORE_KEYS.CACHED_TESTING_HISTORY),
+  '/stats/testing/raw': (request) => cachedData(request, STORE_KEYS.CACHED_TESTING_HISTORY_RAW),
+  '/hospitals/beds': (request) => cachedData(request, STORE_KEYS.CACHED_HOSPITAL_BEDS_COUNT),
+  '/hospitals/medical-colleges': (request) => cachedData(request, STORE_KEYS.CACHED_MEDICAL_COLLEGES),
+  '/notifications': (request) => cachedData(request, STORE_KEYS.CACHED_NOTIFICATIONS),
+  '/unofficial/sources': (request) => getAllUnofficialSources(request),
+  '/unofficial/covid19india.org': (request) =>
+      cachedData(request,STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org"),
+  '/unofficial/covid19india.org/patientdb': (request) => getCovid19PatientDb(request),
+  '/unofficial/covid19india.org/statewise': (request) =>
+      cachedData(request,STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org_statewise"),
+  '/unofficial/covid19india.org/statewise/history': (request) =>
+      cachedData(request,STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org_statewise_history"),
+  '/unofficial/covid19india.org/travelhistory': (request) =>
+      cachedData(request,STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org_travelhistory"),
+  '/refresh': (request) => refreshAllOfficialSources(request),
+  '/refresh/testing': (request) => refreshTestingData(request)
 };
