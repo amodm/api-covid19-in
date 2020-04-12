@@ -8,24 +8,24 @@ import { STORE_KEYS } from './constants';
 export async function refreshTestingData(request, isDebugMode) {
     const response = await fetch(SOURCE_URL);
     if (response.status === 200) {
-        const testingData = (await response.json());
-        if (!Array.isArray(testingData) || testingData.length === 0) {
+        const testingData = (await response.json())["tested"];
+        if (!testingData || !Array.isArray(testingData) || testingData.length === 0) {
             return await errorResponse({"error": "response not an array"});
         }
 
         const rawRecords = testingData.map(row => ({
-            timestamp: getLastUpdated(row["pdate Time Stamp"]),
-            totalSamplesTested: parseInt(row["Total Samples Tested"]),
-            totalIndividualsTested: parseInt(row["Total Individuals Tested"]),
-            totalPositiveCases: parseInt(row["Total Positive Cases"]),
-            source: row["Source"]
+            timestamp: getLastUpdated(row["updatetimestamp"]),
+            totalSamplesTested: parseInt(row["totalsamplestested"]),
+            totalIndividualsTested: parseInt(row["totalindividualstested"]),
+            totalPositiveCases: parseInt(row["totalpositivecases"]),
+            source: row["source"]
         }));
 
         const latestData = rawRecords[rawRecords.length-1];
         const lastRefreshed = new Date().toISOString();
 
         // per day history
-        await Promise.all([
+        await Promise.all(isDebugMode ? [] : [
             // store raw history
             await Store.put(STORE_KEYS.CACHED_TESTING_HISTORY_RAW, JSON.stringify({
                 success: true,
@@ -65,16 +65,19 @@ function getPerDayRecords(rawRecords) {
 }
 
 function getLastUpdated(content) {
-    const r = RegExp("(\\d+)/(\\d+)/(\\d+) (\\d{1,2})[:.](\\d{1,2})");
-    const m = content.match(r);
-    if (!m || m.length !== 6) return "1970-01-01T00:00:00.000Z";
+    const r = RegExp("(\\d+)/(\\d+)/(\\d+) (\\d{1,2})[:.](\\d{1,2})[^ ]+ (am|pm)");
+    const m = content.toLowerCase().match(r);
+    if (!m || m.length !== 7) {
+        console.log(`invalid timestamp in ICMR data: ${content}`);
+        throw `invalid timestamp in ICMR data: ${content}`;
+    }
 
     const day = parseInt(m[1]);
     const month = parseInt(m[2])-1;
     const year = parseInt(m[3]);
-    const hour = parseInt(m[4]);
+    const hour = parseInt(m[4]) + (m[6] === "pm" ? 12 : 0);
     const min = parseInt(m[5]);
     return new Date(Date.UTC(year, month, day, hour, min, 0, 0) - 330*60*1000).toISOString();
 }
 
-const SOURCE_URL = "https://api.steinhq.com/v1/storages/5e6e3e9fb88d3d04ae08158c/ICMRTestData";
+const SOURCE_URL = "https://api.covid19india.org/data.json";
