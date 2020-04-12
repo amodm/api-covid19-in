@@ -5,7 +5,8 @@ import { STORE_KEYS } from './constants';
 /**
  * Fetches data from @SOURCE_URL and caches it
  */
-export async function refreshTestingData(request, isDebugMode) {
+export async function refreshTestingData(request) {
+    const isDebugMode = request.url.includes("debug");
     const response = await fetch(SOURCE_URL);
     if (response.status === 200) {
         const testingData = (await response.json())["tested"];
@@ -27,14 +28,14 @@ export async function refreshTestingData(request, isDebugMode) {
         // per day history
         await Promise.all(isDebugMode ? [] : [
             // store raw history
-            await Store.put(STORE_KEYS.CACHED_TESTING_HISTORY_RAW, JSON.stringify({
+            Store.put(STORE_KEYS.CACHED_TESTING_HISTORY_RAW, JSON.stringify({
                 success: true,
                 data: rawRecords,
                 lastRefreshed,
                 lastOriginUpdate: latestData.timestamp
             })),
-            // stire per day history
-            await Store.put(STORE_KEYS.CACHED_TESTING_HISTORY, JSON.stringify({
+            // store per day history
+            Store.put(STORE_KEYS.CACHED_TESTING_HISTORY, JSON.stringify({
                 success: true,
                 data: getPerDayRecords(rawRecords),
                 lastRefreshed,
