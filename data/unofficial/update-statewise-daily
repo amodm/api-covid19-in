@@ -23,9 +23,11 @@ getHistoricalJsonTillNow() {
 }
 
 updateHistoricalJson() {
+  j=/tmp/json.$$
   today=$(TZ=UTC date '+%Y-%m-%dT%H:%M:00.000Z')
-  json=$(echo "$1" | jq -c "{\"success\": true, \"data\": {\"source\": \"covid19india.org\", \"lastRefreshed\": \"$today\", \"history\":.}}")
-  curl -fsSL -XPUT -d "$json" -H "Content-Type: application/json; charset=utf-8" -H "Authorization: Bearer $CF_API_TOKEN" "$HISTORICAL_URL"
+  echo "$1" | jq -c "{\"success\": true, \"data\": {\"source\": \"covid19india.org\", \"lastRefreshed\": \"$today\", \"history\":.}}" > $j
+  curl -fsSL -XPUT -d @$j -H "Content-Type: application/json; charset=utf-8" -H "Authorization: Bearer $CF_API_TOKEN" "$HISTORICAL_URL"
+  rm -f "$j"
 }
 
 getPriorData() {
