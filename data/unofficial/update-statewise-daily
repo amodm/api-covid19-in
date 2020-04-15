@@ -18,8 +18,7 @@ getLatestJson() {
 }
 
 getHistoricalJsonTillNow() {
-  today=$(TZ=UTC date '+%Y-%m-%d')
-  curl -fsSL -H "Authorization: Bearer $CF_API_TOKEN" "$HISTORICAL_URL" | jq ".data.history[] | select(.day != \"$today\")"
+  curl -fsSL -H "Authorization: Bearer $CF_API_TOKEN" "$HISTORICAL_URL" | jq ".data.history[] | select(.day != \"$1\")"
 }
 
 updateHistoricalJson() {
@@ -40,4 +39,6 @@ getPriorData() {
 #updateHistoricalJson "$(getPriorData | jq -sc .)"
 
 # Update using today's data
-updateHistoricalJson "$({ getHistoricalJsonTillNow; getLatestJson; } | jq -cs .)"
+LATEST_JSON=$(getLatestJson)
+TODAY=$(echo "$LATEST_JSON" | jq -r .day)
+updateHistoricalJson "$({ getHistoricalJsonTillNow "$TODAY"; echo "$LATEST_JSON"; } | jq -cs .)"
