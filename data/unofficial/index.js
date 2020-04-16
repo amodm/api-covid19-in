@@ -2,7 +2,7 @@ require('dotenv').config({ path: `${__dirname}/.env` });
 const { google } = require('googleapis');
 const fetch = require("node-fetch");
 
-const COVID19_DATASHEET_ID = "1nzXUdaIWC84QipdVGUKTiCSc5xntBbpMpzLm6Si33zk";
+const COVID19_DATASHEET_ID = process.env['COVID19_SHEET_ID'];
 
 /**
  * Fetches data curated by covid19india.org
