@@ -52,7 +52,7 @@ async function refreshCaseCounts(request, isDebugMode) {
         const historicalTimestamps = await getCaseCountHistoricalTimestamps();
         const isNewOriginUpdate = historicalTimestamps.length===0 ||
             curOriginUpdateMillis > new Date(historicalTimestamps[historicalTimestamps.length-1]).getTime();
-        if (isNewOriginUpdate && !isDebugMode) {
+        if (!isDebugMode) {
             const ts = curOriginUpdateDate.toISOString();
             await Store.put(getCaseCountKeyForHistoricalTimestamp(ts), JSON.stringify(caseCounts));
         }
