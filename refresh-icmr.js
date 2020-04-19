@@ -66,7 +66,7 @@ function getPerDayRecords(rawRecords) {
 }
 
 function getLastUpdated(content) {
-    const r = RegExp("(\\d+)/(\\d+)/(\\d+) (\\d{1,2})[:.](\\d{1,2})[^ ]+ (am|pm)");
+    const r = RegExp("(\\d+)/(\\d+)/(\\d+) (\\d{1,2})[:.](\\d{1,2})([:.]\\d{1,2})?");
     const m = content.toLowerCase().match(r);
     if (!m || m.length !== 7) {
         console.log(`invalid timestamp in ICMR data: ${content}`);
@@ -76,7 +76,7 @@ function getLastUpdated(content) {
     const day = parseInt(m[1]);
     const month = parseInt(m[2])-1;
     const year = parseInt(m[3]);
-    const hour = parseInt(m[4]) + (m[6] === "pm" ? 12 : 0);
+    const hour = parseInt(m[4]) + (content.endsWith("pm") ? 12 : 0);
     const min = parseInt(m[5]);
     return new Date(Date.UTC(year, month, day, hour, min, 0, 0) - 330*60*1000).toISOString();
 }
