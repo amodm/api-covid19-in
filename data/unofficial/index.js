@@ -132,9 +132,9 @@ async function updateStatewiseDataFromCovid19IndiaOrg() {
 /**
  * Update the unofficial source record in Workers KV
  */
-async function updateUnofficialSource(sourceId, data, suffix=undefined) {
+async function updateUnofficialSource(sourceId, data, suffix=undefined, isRaw = undefined) {
     const current = new Date().toISOString();
-    const finalData = {
+    const finalData = isRaw ? data : {
         success: true,
         data: {source: sourceId, lastRefreshed: current, ...data},
         lastRefreshed: current,
@@ -209,6 +209,109 @@ function get_authorized_google_client() {
     return oAuth2Client;
 }
 
+async function bootstrapStatewiseHistory() {
+    const locMap = {
+        "an": "Andaman and Nicobar Islands",
+        "ap": "Andhra Pradesh",
+        "ar": "Arunachal Pradesh",
+        "as": "Assam",
+        "br": "Bihar",
+        "ch": "Chandigarh",
+        "ct": "Chhattisgarh",
+        "dd": "Daman and Diu",
+        "dl": "Delhi",
+        "dn": "Dadra and Nagar Haveli",
+        "ga": "Goa",
+        "gj": "Gujarat",
+        "hp": "Himachal Pradesh",
+        "hr": "Haryana",
+        "jh": "Jharkhand",
+        "jk": "Jammu and Kashmir",
+        "ka": "Karnataka",
+        "kl": "Kerala",
+        "la": "Lakshadweep",
+        "ld": "Ladakh",
+        "mh": "Maharashtra",
+        "ml": "Meghalaya",
+        "mn": "Manipur",
+        "mp": "Madhya Pradesh",
+        "mz": "Mizoram",
+        "nl": "Nagaland",
+        "or": "Odisha",
+        "pb": "Punjab",
+        "py": "Puducherry",
+        "rj": "Rajasthan",
+        "sk": "Sikkim",
+        "tg": "Telangana",
+        "tn": "Tamil Nadu",
+        "tr": "Tripura",
+        "up": "Uttar Pradesh",
+        "ut": "Uttarakhand",
+        "wb": "West Bengal"
+    };
+    const monthMap = {"Mar": "03", "Apr": "04", "May": "05"};
+    const statusMap = {"Confirmed": "confirmed", "Deceased": "deaths", "Recovered": "recovered"};
+
+    const dailyStatewise = [];
+    const arr = (await (await fetch('https://api.covid19india.org/states_daily.json')).json())["states_daily"];
+    arr.forEach(x => {
+        let confirmed = 0, recovered = 0, deaths = 0, active = 0;
+        let darr = x.date.split('-');
+        let day = "2020-" + monthMap[darr[1]] + "-" + darr[0];
+
+        let dayRecord = dailyStatewise.find(d => d.day === day);
+        if (!dayRecord) {
+            dayRecord = {
+                day,
+                total: { confirmed, recovered, deaths, active },
+                statewise: []
+            };
+            dailyStatewise.push(dayRecord);
+        }
+        let prevRecord = dailyStatewise.length < 2 ? undefined : dailyStatewise[dailyStatewise.length-2];
+
+        const status = statusMap[x.status];
+        dayRecord.total[status] = parseInt(x["tt"]);
+        if (prevRecord) {
+            dayRecord.total[status] += prevRecord.total[status];
+        }
+        Object.keys(x).filter(st => st !== "tt" && st !== "status" && st !== "date").forEach(loc => {
+            const stateName = locMap[loc];
+            if (!stateName) {
+                console.log(`Missing state for ${loc}`);
+            }
+            let locRecord = dayRecord.statewise.find(l => l.state === stateName);
+            if (!locRecord) {
+                locRecord = {state: stateName, confirmed: 0, recovered: 0, deaths: 0, active: 0};
+                dayRecord.statewise.push(locRecord);
+            }
+            locRecord[status] = parseInt(x[loc]);
+            if (prevRecord) {
+                locRecord[status] += (prevRecord.statewise.find(l => l.state === stateName) || {status: 0})[status];
+            }
+        });
+    });
+
+    const fixActive = (x) => x.active = x.confirmed - (x.deaths + x.recovered);
+
+    dailyStatewise.forEach(x => {
+        fixActive(x.total);
+        x.statewise.forEach(s => fixActive(s));
+    });
+
+    const history = {
+        success: true,
+        data: {
+            source: "covid19india.org",
+            lastRefreshed: new Date().toISOString(),
+            history: dailyStatewise //.sort(x => x.day)
+        }
+    };
+
+    updateUnofficialSource("covid19india.org", history, 'statewise_history', true);
+}
+
+//bootstrapStatewiseHistory();
 updateDataFromCovid19IndiaOrg();
 updateStatewiseDataFromCovid19IndiaOrg();
 // updateTravelHistoryFromCovid19IndiaOrg();
