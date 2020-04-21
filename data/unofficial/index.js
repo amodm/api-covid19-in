@@ -2,7 +2,8 @@ require('dotenv').config({ path: `${__dirname}/.env` });
 const { google } = require('googleapis');
 const fetch = require("node-fetch");
 
-const COVID19_DATASHEET_ID = process.env['COVID19_SHEET_ID'];
+const COVID19_DATASHEET_ID_ALL = process.env['COVID19_SHEET_IDS'].split(/[^a-zA-Z0-9-_.]+/);
+const COVID19_DATASHEET_ID_LATEST = COVID19_DATASHEET_ID_ALL[COVID19_DATASHEET_ID_ALL.length-1];
 
 /**
  * Fetches data curated by covid19india.org
@@ -27,15 +28,31 @@ async function updateDataFromCovid19IndiaOrg() {
         else if (hdr.startsWith("notes")) return ["notes", value];
         else if (hdr.startsWith("source")) return ["sources", [value]];
     };
-    const sheetId = COVID19_DATASHEET_ID;
-    const cellRange = "Raw_Data!A:O";
-    let data = await getGoogleSheetData(sheetId, cellRange, valueMapper);
-    let lastValidIndex = data.length;
-    while (lastValidIndex-- > 0) {
-        const record = data[lastValidIndex];
-        if (Object.keys(record).length > 1 && record["patientId"] && record["reportedOn"]) break;
+    let data = [];
+    for (let i=0; i<COVID19_DATASHEET_ID_ALL.length; i++) {
+        const sheetId = COVID19_DATASHEET_ID_ALL[i];
+        const cellRange = "Raw_Data!A:O";
+        let thisSheetData = await getGoogleSheetData(sheetId, cellRange, valueMapper);
+        let lastValidIndex = thisSheetData.length;
+        while (lastValidIndex-- > 0) {
+            const record = thisSheetData[lastValidIndex];
+            if (Object.keys(record).length > 1 && record["patientId"] && record["reportedOn"]) break;
+        }
+        thisSheetData = thisSheetData.slice(0, lastValidIndex+1);
+
+        // merge this new sheet data on to the previous one, with the new one taking precedence
+        for (let j=0; j<thisSheetData.length; j++) {
+            const thisPatientId = thisSheetData[j]["patientId"];
+            if (thisPatientId) {
+                const existingPatientFromPrevSheetIdx = data.findIndex(x => x["patientId"] === thisPatientId);
+                if (existingPatientFromPrevSheetIdx >= 0) {
+                    data[existingPatientFromPrevSheetIdx] = thisSheetData[j];
+                } else {
+                    data.push(thisSheetData[j]);
+                }
+            }
+        }
     }
-    data = data.slice(0, lastValidIndex+1);
 
     // update with NLP data using batches so as to not overload the NLP system
     const batchSize = 500;
@@ -96,7 +113,7 @@ async function updateStatewiseDataFromCovid19IndiaOrg() {
         else if (hdr === "deaths") return ["deaths", parseInt(value)];
         else if (hdr === "active") return ["active", parseInt(value)];
     };
-    const sheetId = COVID19_DATASHEET_ID;
+    const sheetId = COVID19_DATASHEET_ID_LATEST;
     const cellRange = "Statewise!A:E";
     let data = await getGoogleSheetData(sheetId, cellRange, valueMapper);
     let lastValidIndex = data.length;
