@@ -39,7 +39,7 @@ async function refreshCaseCounts(request, isDebugMode) {
 
         // extract data from html content
         const notifications = getNotifications(content);
-        const currentCaseCountRecord = createCaseCountRecord(caseCounts);
+        const currentCaseCountRecord = createCaseCountRecord(caseCounts, await getUnofficialSummaries());
         const numForeign = getTotalConfirmedForeignCases(content);
         // fix the total number of foreign cases
         if (numForeign && numForeign > currentCaseCountRecord.summary.confirmedCasesForeign) {
@@ -186,7 +186,7 @@ function forEveryTableRowCol(content, cb) {
 /**
  * Creates a record that includes summary stats, along with the regional data
  */
-function createCaseCountRecord(regionalCaseCounts) {
+function createCaseCountRecord(regionalCaseCounts, unofficialSummaries) {
     const summaryCounts = {
         "total": 0,
         "confirmedCasesIndian": 0,
@@ -216,7 +216,7 @@ function createCaseCountRecord(regionalCaseCounts) {
         summaryCounts["total"] = summaryCounts["total"] + unidentified;
     }
 
-    return { "summary": summaryCounts, "regional": displayedRegionalCaseCounts };
+    return { "summary": summaryCounts, "unofficial-summary": unofficialSummaries, "regional": displayedRegionalCaseCounts };
 }
 
 /**
@@ -347,6 +347,21 @@ async function getCaseCountTimeSeries(timestamps) {
         timeseries.push({day: getDayFromTimestamp(recordTimestamps[i]), ...recordForDay});
     }
     return timeseries.sort((x,y) => x.day.localeCompare(y.day));
+}
+
+async function getUnofficialSummaries() {
+    const cv19Response = await fetch('https://api.rootnet.in/covid19-in/unofficial/covid19india.org/statewise');
+    if (cv19Response.status === 200) {
+        const cv19Summary = (await cv19Response.json())["data"]["total"];
+        return [{
+            source: "covid19india.org",
+            total: cv19Summary["confirmed"],
+            recovered: cv19Summary["recovered"],
+            deaths: cv19Summary["deaths"],
+            active: cv19Summary["active"],
+        }];
+    }
+    return undefined;
 }
 
 /**
