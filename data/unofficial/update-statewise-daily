@@ -24,6 +24,8 @@ getHistoricalJsonTillNow() {
 updateHistoricalJson() {
   j=/tmp/json.$$
   today=$(TZ=UTC date '+%Y-%m-%dT%H:%M:00.000Z')
+  len=$(echo "$1" | jq '. | length')
+  [ $len -lt 40 ] && echo "avoiding screwing up of history" >&2 && exit 1
   echo "$1" | jq -c "{\"success\": true, \"data\": {\"source\": \"covid19india.org\", \"lastRefreshed\": \"$today\", \"history\":.}}" > $j
   curl -fsSL -XPUT -d @$j -H "Content-Type: application/json; charset=utf-8" -H "Authorization: Bearer $CF_API_TOKEN" "$HISTORICAL_URL"
   rm -f "$j"
