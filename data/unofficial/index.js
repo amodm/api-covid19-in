@@ -170,6 +170,7 @@ async function getGoogleSheetData(spreadsheetId, range, valueMapper) {
     }
 }
 
+/* Deprecated by upstream now */
 async function updateTravelHistoryFromCovid19IndiaOrg() {
     const response = await fetch('https://api.covid19india.org/travel_history.json');
     if (response.status === 200) {
