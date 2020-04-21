@@ -30,7 +30,7 @@ and separately from [unofficial sources](#unofficial-sources)
 * Unofficial patient tracing data: https://api.rootnet.in/covid19-in/unofficial/covid19india.org
 * Unofficial statewise: https://api.rootnet.in/covid19-in/unofficial/covid19india.org/statewise
 * Unofficial statewise history: https://api.rootnet.in/covid19-in/unofficial/covid19india.org/statewise/history
-* Unofficial patient travel history: https://api.rootnet.in/covid19-in/unofficial/covid19india.org/travelhistory
+* Unofficial patient travel history (NOT MAINTAINED ANYMORE by upstream): https://api.rootnet.in/covid19-in/unofficial/covid19india.org/travelhistory
 
 #### Maintenance
 * Refresh the data from source (maintainer only) https://api.rootnet.in/covid19-in/refresh
