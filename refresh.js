@@ -350,9 +350,9 @@ async function getCaseCountTimeSeries(timestamps) {
 }
 
 async function getUnofficialSummaries() {
-    const cv19Response = await fetch('https://api.rootnet.in/covid19-in/unofficial/covid19india.org/statewise');
-    if (cv19Response.status === 200) {
-        const cv19Summary = (await cv19Response.json())["data"]["total"];
+    try {
+        const covid19Key = STORE_KEYS.CACHED_UNOFFICIAL_SRC_PREFIX + "covid19india.org_statewise";
+        const cv19Summary = (await Store.get(covid19Key, "json"))["data"]["total"];
         return [{
             source: "covid19india.org",
             total: cv19Summary["confirmed"],
@@ -360,8 +360,10 @@ async function getUnofficialSummaries() {
             deaths: cv19Summary["deaths"],
             active: cv19Summary["active"],
         }];
+    } catch (e) {
+        // console.log(e);
+        return undefined;
     }
-    return undefined;
 }
 
 /**
