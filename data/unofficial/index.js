@@ -311,7 +311,7 @@ async function bootstrapStatewiseHistory() {
     updateUnofficialSource("covid19india.org", history, 'statewise_history', true);
 }
 
-bootstrapStatewiseHistory();
-// updateDataFromCovid19IndiaOrg();
-// updateStatewiseDataFromCovid19IndiaOrg();
+// bootstrapStatewiseHistory();
+updateStatewiseDataFromCovid19IndiaOrg();
+updateDataFromCovid19IndiaOrg();
 // updateTravelHistoryFromCovid19IndiaOrg();
