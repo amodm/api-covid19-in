@@ -285,7 +285,7 @@ async function bootstrapStatewiseHistory() {
                 locRecord = {state: stateName, confirmed: 0, recovered: 0, deaths: 0, active: 0};
                 dayRecord.statewise.push(locRecord);
             }
-            locRecord[status] = parseInt(x[loc]);
+            locRecord[status] = parseInt(x[loc]) || 0;
             if (prevRecord) {
                 locRecord[status] += (prevRecord.statewise.find(l => l.state === stateName) || {status: 0})[status];
             }
@@ -311,7 +311,7 @@ async function bootstrapStatewiseHistory() {
     updateUnofficialSource("covid19india.org", history, 'statewise_history', true);
 }
 
-//bootstrapStatewiseHistory();
-updateDataFromCovid19IndiaOrg();
-updateStatewiseDataFromCovid19IndiaOrg();
+bootstrapStatewiseHistory();
+// updateDataFromCovid19IndiaOrg();
+// updateStatewiseDataFromCovid19IndiaOrg();
 // updateTravelHistoryFromCovid19IndiaOrg();
