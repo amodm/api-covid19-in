@@ -38,10 +38,14 @@ async function notFoundHandler() {
 async function cachedData(request, key, decorator) {
   const isBrowser = (request.headers.get("accept") || "").toLowerCase().includes("html");
   try {
-    let data= await Store.get(key);
+    const cacheGetStart = Date.now();
+    let data = await Store.get(key);
+    const cacheGetTimeTaken = Date.now() - cacheGetStart;
     if (decorator) data = decorator(data);
     if (isBrowser) data = JSON.stringify(typeof data === 'string' ? JSON.parse(data) : data, null, 2);
-    return rawResponse(data);
+    const response = rawResponse(data);
+    response.headers.append("Server-Timing", `cache;dur=${cacheGetTimeTaken}`);
+    return response;
   } catch (err) {
     return errorResponse({ "message": err })
   }
