@@ -102,9 +102,9 @@ function getCaseCounts(content) {
     let confirmedForeignIdx = -1;
     let dischargedIdx = -1;
     let deadIdx = -1;
-    let isTotalRow = false;
     let totalIndian = 0;
     let totalForeign = 0;
+    let serialNos = [];
     forEveryTableRowCol(content, (row, col, data) => {
         const headerRowInitialized = locNameIdx>=0 && confirmedIndianIdx>=0 /*&& confirmedForeignIdx>=0*/
             && dischargedIdx>=0 && deadIdx>=0;
@@ -117,10 +117,16 @@ function getCaseCounts(content) {
             else if (hdr.includes("death")) deadIdx = col;
         }
         else if (headerRowInitialized) {
-            if (!isTotalRow) isTotalRow = col === 0 && data.toLowerCase().trim().startsWith("total");
+            if (col === 0) serialNos[row] = data;
+            const validRow = serialNos[row].match(/\s*\d+\s*/g);
 
-            if (!isTotalRow) {
-                if (col === 0) caseCounts.push({}); // initialize a new entry if it's a fresh row
+            if (validRow) {
+                if (col === 0) caseCounts.push({
+                    confirmedCasesIndian: 0,
+                    confirmedCasesForeign: 0,
+                    discharged: 0,
+                    deaths: 0
+                }); // initialize a new entry if it's a fresh row
                 const locData = caseCounts[caseCounts.length-1]; // use the last entry
 
                 if (col === locNameIdx) locData["loc"] = data;
@@ -228,7 +234,7 @@ function getTotalConfirmedForeignCases(content) {
     if ((m = r.exec(content))) {
         return parseInt(m[1]);
     } else {
-        return 0;
+        return 48;
     }
 }
 
