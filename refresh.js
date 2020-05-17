@@ -30,7 +30,7 @@ async function refreshCaseCounts(request, isDebugMode) {
         const curOriginUpdateMillis = getOriginUpdateTime(content);
         const curOriginUpdateDate = new Date(curOriginUpdateMillis);
         const curRefreshedDate = new Date();
-        const caseCounts = getCaseCounts(content);
+        const caseCounts = getCaseCounts(content).filter(x => x['loc']);
 
         // heuristically check for failure
         if (!caseCounts || caseCounts.length === 0 || Object.keys(caseCounts[0]).length < 3) {
