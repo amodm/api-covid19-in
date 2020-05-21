@@ -278,13 +278,18 @@ function getOriginUpdateTime(content) {
  * Get the total count including unconfirmed location, as called out explicitly
  */
 function getTotalIncludingUnconfirmedLocation(content) {
-    const r = RegExp(">\\s*(\\d+)\\s*[*#]\\s*<", "gs");
-    let m;
-    if ((m = r.exec(content))) {
-        return parseInt(m[1]);
-    } else {
-        return 0;
+    const from = content.search(/>Total[#*]*</);
+    if (from > 0) {
+        const to = content.indexOf('</tr', from);
+        if (to > 0) {
+            const r = RegExp(">\\s*(\\d+)\\s*[*#]?\\s*<", "gs");
+            let m;
+            if ((m = r.exec(content.substring(from, to)))) {
+                return parseInt(m[1]);
+            }
+        }
     }
+    return 0;
 }
 
 /**
