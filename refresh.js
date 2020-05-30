@@ -284,9 +284,12 @@ function getTotalIncludingUnconfirmedLocation(content) {
         if (to > 0) {
             const r = RegExp(">\\s*(\\d+)\\s*[*#]?\\s*<", "gs");
             let m;
-            if ((m = r.exec(content.substring(from, to)))) {
-                return parseInt(m[1]);
+            let largest = 0;
+            while ((m = r.exec(content.substring(from, to)))) {
+                let v = parseInt(m[1]);
+                if (v > largest) largest = v;
             }
+            return largest;
         }
     }
     return 0;
