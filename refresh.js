@@ -25,12 +25,13 @@ export async function refreshAllOfficialSources(request) {
  */
 async function refreshCaseCounts(request, isDebugMode) {
     const response = await fetch(SOURCE_URL);
+    const apiJsonData = await (await fetch('https://www.mohfw.gov.in/data/datanew.json')).json();
     const content = (await response.text());
     if (response.status === 200) {
         const curOriginUpdateMillis = getOriginUpdateTime(content);
         const curOriginUpdateDate = new Date(curOriginUpdateMillis);
         const curRefreshedDate = new Date();
-        const caseCounts = getCaseCounts(content).filter(x => x['loc']);
+        const caseCounts = getCaseCounts(apiJsonData).filter(x => x['loc']);
 
         // heuristically check for failure
         if (!caseCounts || caseCounts.length === 0 || Object.keys(caseCounts[0]).length < 3) {
@@ -95,7 +96,51 @@ async function refreshCaseCounts(request, isDebugMode) {
  * Get case count numbers from @content. The result is an array of objects, each specifying loc (location),
  * confirmedCasesIndian, confirmedCasesForeign, discharged and deaths
  */
-function getCaseCounts(content) {
+function getCaseCounts(apiJsonData) {
+    let caseCounts = [];
+    let locNameIdx = -1;
+    let confirmedIndianIdx = -1;
+    let confirmedForeignIdx = -1;
+    let dischargedIdx = -1;
+    let deadIdx = -1;
+    let totalIndian = 0;
+    let totalForeign = 0;
+    let serialNos = [];
+    caseCounts = apiJsonData.map(x => ({
+        loc: x["state_name"],
+        confirmedCasesIndian: parseInt(x["new_active"]) + parseInt(x["new_cured"]) + parseInt(x["new_death"]),
+        confirmedCasesForeign: 0,
+        discharged: parseInt(x["new_cured"]),
+        deaths: parseInt(x["new_death"])
+    }));
+    const totalIncludingUnidentified = 0; //getTotalIncludingUnconfirmedLocation(content);
+    const calculatedTotal = totalIndian + totalForeign;
+    if (totalIncludingUnidentified > 0 && totalIncludingUnidentified > calculatedTotal && totalIncludingUnidentified < calculatedTotal*3) {
+        caseCounts.push({loc: LOC_UNIDENTIFIED, confirmedCasesIndian: totalIncludingUnidentified - calculatedTotal});
+    }
+
+    // deal with shitty updates from MoHFW by capturing the last proper update of confirmedCasesForeign
+    //
+    // we now get only confirmedCases from MoHFW, without any breakdown of indian vs foreign cases, so we use the last
+    // snapshot of breakdown to calculate the best estimate of foreign cases, while still keeping the total correct
+    const lastForeignUpdate = [{"loc":"Andhra Pradesh","confirmedCasesIndian":14,"confirmedCasesForeign":0,"discharged":1,"deaths":0},{"loc":"Andaman and Nicobar Islands","confirmedCasesIndian":9,"confirmedCasesForeign":0,"discharged":0,"deaths":0},{"loc":"Bihar","confirmedCasesIndian":9,"confirmedCasesForeign":0,"discharged":0,"deaths":1},{"loc":"Chandigarh","confirmedCasesIndian":8,"confirmedCasesForeign":0,"discharged":0,"deaths":0},{"loc":"Chhattisgarh","confirmedCasesIndian":6,"confirmedCasesForeign":0,"discharged":0,"deaths":0},{"loc":"Delhi","confirmedCasesIndian":38,"confirmedCasesForeign":1,"discharged":6,"deaths":2},{"loc":"Goa","confirmedCasesIndian":2,"confirmedCasesForeign":1,"discharged":0,"deaths":0},{"loc":"Gujarat","confirmedCasesIndian":52,"confirmedCasesForeign":1,"discharged":0,"deaths":4},{"loc":"Haryana","confirmedCasesIndian":19,"confirmedCasesForeign":14,"discharged":12,"deaths":0},{"loc":"Himachal Pradesh","confirmedCasesIndian":3,"confirmedCasesForeign":0,"discharged":0,"deaths":1},{"loc":"Jammu and Kashmir","confirmedCasesIndian":31,"confirmedCasesForeign":0,"discharged":1,"deaths":1},{"loc":"Karnataka","confirmedCasesIndian":76,"confirmedCasesForeign":0,"discharged":5,"deaths":3},{"loc":"Kerala","confirmedCasesIndian":174,"confirmedCasesForeign":8,"discharged":15,"deaths":1},{"loc":"Ladakh","confirmedCasesIndian":13,"confirmedCasesForeign":0,"discharged":3,"deaths":0},{"loc":"Madhya Pradesh","confirmedCasesIndian":30,"confirmedCasesForeign":0,"discharged":0,"deaths":2},{"loc":"Maharashtra","confirmedCasesIndian":183,"confirmedCasesForeign":3,"discharged":25,"deaths":6},{"loc":"Manipur","confirmedCasesIndian":1,"confirmedCasesForeign":0,"discharged":0,"deaths":0},{"loc":"Mizoram","confirmedCasesIndian":1,"confirmedCasesForeign":0,"discharged":0,"deaths":0},{"loc":"Odisha","confirmedCasesIndian":3,"confirmedCasesForeign":0,"discharged":0,"deaths":0},{"loc":"Puducherry","confirmedCasesIndian":1,"confirmedCasesForeign":0,"discharged":0,"deaths":0},{"loc":"Punjab","confirmedCasesIndian":38,"confirmedCasesForeign":0,"discharged":1,"deaths":1},{"loc":"Rajasthan","confirmedCasesIndian":52,"confirmedCasesForeign":2,"discharged":3,"deaths":0},{"loc":"Tamil Nadu","confirmedCasesIndian":36,"confirmedCasesForeign":6,"discharged":2,"deaths":1},{"loc":"Telengana","confirmedCasesIndian":56,"confirmedCasesForeign":10,"discharged":1,"deaths":1},{"loc":"Uttarakhand","confirmedCasesIndian":5,"confirmedCasesForeign":1,"discharged":1,"deaths":0},{"loc":"Uttar Pradesh","confirmedCasesIndian":54,"confirmedCasesForeign":1,"discharged":11,"deaths":0},{"loc":"West Bengal","confirmedCasesIndian":17,"confirmedCasesForeign":0,"discharged":0,"deaths":1}];
+    caseCounts.forEach(x => {
+        const lastF = lastForeignUpdate.find(e => e.loc === x.loc);
+        if (lastF) {
+            x.confirmedCasesForeign = lastF.confirmedCasesForeign;
+            x.confirmedCasesIndian -= lastF.confirmedCasesForeign;
+        } else {
+            x.confirmedCasesForeign = 0;
+        }
+    });
+    return caseCounts;
+}
+
+/**
+ * Get case count numbers from @content. The result is an array of objects, each specifying loc (location),
+ * confirmedCasesIndian, confirmedCasesForeign, discharged and deaths
+ */
+function getCaseCountsOld(content) {
     const caseCounts = [];
     let locNameIdx = -1;
     let confirmedIndianIdx = -1;
