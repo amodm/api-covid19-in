@@ -14,6 +14,7 @@ export function successResponse(data) {
     };
     return new Response(JSON.stringify(output), { headers: standardHeaders });
 }
+//shold qeryslector
 
 export async function errorResponse(details, timestampsPromise, status = 500) {
     const timestamps = timestampsPromise ? await timestampsPromise : ["0", "0"];
