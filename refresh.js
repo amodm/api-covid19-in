@@ -395,17 +395,36 @@ async function getCaseCountTimeSeries(timestamps) {
         if (!existingTimestamp || existingTimestamp.localeCompare(ts) < 0) day2Timestamp[day] = ts;
     }
 
+    const history = await fetch('https://api.rootnet.in/covid19-in/stats/history').then(x => x.json());
+    const existingRecords = history.data.slice(0, history.data.length-2); // make sure we're refreshing the last 2 days
     const recordTimestamps = Object.values(day2Timestamp);
-    const records = await Promise.all(
+    for (let rts=0; rts<recordTimestamps.length; rts++) {
+        let found = false;
+        const day = recordTimestamps[rts].substring(0, 10);
+        for (let i=0; i<existingRecords.length; i++) {
+            if (existingRecords[i].day == day) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            const recordForDay = createCaseCountRecord(await Store.get(getCaseCountKeyForHistoricalTimestamp(recordTimestamps[rts]), "json"));
+            existingRecords.push({day: getDayFromTimestamp(recordTimestamps[rts]), ...recordForDay});
+        }
+    }
+    return existingRecords.sort((x,y) => x.day.localeCompare(y.day));
+    /*const records = await Promise.all(
         recordTimestamps.map(getCaseCountKeyForHistoricalTimestamp).map(k => Store.get(k, "json"))
     );
 
     const timeseries = [];
     for (let i=0; i<recordTimestamps.length; i++) {
+        console.log(`starting for ${recordTimestamps[i]}`);
         const recordForDay = createCaseCountRecord(records[i]);
         timeseries.push({day: getDayFromTimestamp(recordTimestamps[i]), ...recordForDay});
+        console.log(`done for ${recordTimestamps[i]}`);
     }
-    return timeseries.sort((x,y) => x.day.localeCompare(y.day));
+    return timeseries.sort((x,y) => x.day.localeCompare(y.day));*/
 }
 
 async function getUnofficialSummaries() {
