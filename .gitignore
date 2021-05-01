@@ -10,3 +10,5 @@ node_modules/
 .cargo-ok
 /.idea
 /wrangler.toml
+data/backups
+data/mohfw

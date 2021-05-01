@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+prevday=""
+prevcount=0
+curl -s 'https://api.rootnet.in/covid19-in/stats/history' | jq -r '.data[] | "\(.day):  \(.summary.total)"' | while read -r line; do
+    day=$(echo "$line" | awk '{ print $1 }')
+    count=$(echo "$line" | awk '{ print $2 }')
+    [ $count -eq $prevcount ] && echo "$prevday: $prevcount" && echo "$day: $count"
+    prevday="$day"
+    prevcount=$count
+done
+

@@ -1,0 +1,149 @@
+#!/usr/bin/python3
+from datetime import datetime, timezone
+import json
+import requests
+import os
+import subprocess
+import sys
+import toml
+
+
+def convert_to_api_format(record):
+    """
+    Convers MoHFW format to our API format
+    """
+    global LAST_FOREIGN_COUNTS
+    confirmed = int(record["new_active"]) + int(record["new_cured"]) + int(record["new_death"])
+    lastFCount = LAST_FOREIGN_COUNTS.get(record["state_name"], 0)
+    return {
+        "loc": record["state_name"],
+        "confirmedCasesIndian": confirmed - lastFCount,
+        "confirmedCasesForeign": lastFCount,
+        "discharged": int(record["new_cured"]),
+        "deaths": int(record["new_death"]),
+        "totalConfirmed": confirmed
+    }
+
+
+def get_summary(day_data):
+    """
+    Returns summary stats for this day data
+    """
+    numIndian = 0
+    numForeign = 0
+    numDischarged = 0
+    numDeaths = 0
+    for state_record in day_data:
+        numIndian += state_record["confirmedCasesIndian"]
+        numForeign += state_record["confirmedCasesForeign"]
+        numDischarged += state_record["discharged"]
+        numDeaths += state_record["deaths"]
+
+    return {
+        "total": numIndian + numForeign,
+        "confirmedCasesIndian": numIndian,
+        "confirmedCasesForeign": numForeign,
+        "discharged": numDischarged,
+        "deaths": numDeaths,
+        "confirmedButLocationUnidentified": 0
+    }
+
+
+def read_toml(filename):
+    """
+    Reads and returns an object version of wrangler.toml
+    """
+    with open(filename, "r") as fp:
+        return toml.loads(fp.read())
+
+
+def kv_get(key):
+    """
+    Read the value of the specified key from COVID19 KV DB
+    """
+    config = read_toml("wrangler.toml")
+    account_id = config["account_id"]
+    ns_id = next(x["id"] for x in config["kv-namespaces"] if x["binding"] == "COVID19")
+    url = "https://api.cloudflare.com/client/v4/accounts/%s/storage/kv/namespaces/%s/values/%s" % (account_id, ns_id, key)
+    api_token = read_toml(os.path.expanduser("~/.wrangler/config/default.toml"))["api_token"]
+    headers = {
+        "Authorization": "Bearer %s" % api_token
+    }
+    return requests.get(url, headers=headers).json()
+
+
+def kv_put(key, value):
+    """
+    Writes the specified kv pair to COVID19 KV DB
+    """
+    config = read_toml("wrangler.toml")
+    account_id = config["account_id"]
+    ns_id = next(x["id"] for x in config["kv-namespaces"] if x["binding"] == "COVID19")
+    url = "https://api.cloudflare.com/client/v4/accounts/%s/storage/kv/namespaces/%s/values/%s" % (account_id, ns_id, key)
+    api_token = read_toml(os.path.expanduser("~/.wrangler/config/default.toml"))["api_token"]
+    headers = {
+        "Content-Type": "application/json; charset=utf-8",
+        "Authorization": "Bearer %s" % api_token
+    }
+    return requests.put(url, headers=headers, data=value).json()
+
+
+def main():
+    """
+    Main entry point for the program
+    """
+    if len(sys.argv) != 2:
+        print("usage: %s <yyyy-mm-dd>" % sys.argv[0], file=sys.stderr)
+        sys.exit(1)
+
+    date = sys.argv[1]
+    data_file = "data/mohfw/data-%s.22.json" % date
+    if os.path.isfile(data_file):
+        with open(data_file, "r") as fp:
+            json_data = json.loads(fp.read())
+    else:
+        print("error: failed to load data from file %s" % data_file, file=sys.stderr)
+        sys.exit(1)
+
+    json_data = filter(lambda x: len(x.get('state_name', '')) > 0, json_data)
+    day_data = list(map(convert_to_api_format, json_data))
+    json_str = json.dumps(day_data)
+
+    result = kv_put("case_counts/%sT02:30:00.000Z" % date, json_str)
+    if result.get('success', False):
+        print("Uploaded %s day record correctly" % date)
+    else:
+        print("Failed to upload day record for %s: %s" % (date, result), file=sys.stderr)
+        sys.exit(1)
+
+    historical_json = kv_get("cached_case_counts_history")
+    day_history = next(x for x in historical_json["data"] if x["day"] == date)
+    if day_history:
+        day_history["summary"] = get_summary(day_data)
+        day_history["regional"] = day_data
+    else:
+        historical_json["data"].append({
+            "day": date,
+            "summary": get_summary(day_data),
+            "regional": day_data
+        })
+        historical_json["lastRefreshed"] = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+        historical_json["lastOriginUpdate"] = "%sT02:30:00.000Z" % date
+
+    result = kv_put("cached_case_counts_history", json.dumps(historical_json))
+    if result.get('success', False):
+        print("Uploaded historical record correctly")
+    else:
+        print("Failed to upload historical record: %s" % result, file=sys.stderr)
+        sys.exit(1)
+
+
+"""
+Used to split the counts into Indian and Foreign nationals by using the last
+such MoHFW data, to ensure API compatibility in the records of early days
+"""
+LAST_FOREIGN_COUNTS = {"Andhra Pradesh": 0,"Andaman and Nicobar Islands": 0,"Bihar": 0,"Chandigarh": 0,"Chhattisgarh": 0,"Delhi": 1,"Goa": 1,"Gujarat": 1,"Haryana": 14,"Himachal Pradesh": 0,"Jammu and Kashmir": 0,"Karnataka": 0,"Kerala": 8,"Ladakh": 0,"Madhya Pradesh": 0,"Maharashtra": 3,"Manipur": 0,"Mizoram": 0,"Odisha": 0,"Puducherry": 0,"Punjab": 0,"Rajasthan": 2,"Tamil Nadu": 6,"Telengana": 10,"Uttarakhand": 1,"Uttar Pradesh": 1,"West Bengal": 0}
+
+
+if __name__ == "__main__":
+    main()
