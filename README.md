@@ -4,6 +4,10 @@
   Author: amodm
   -->
 
+## Archived
+This repo is now archived, given the lack of further development. The API endpoints themselves continue to be available
+as of this writing, but are not guaranteed to exist in future.
+
 # COVID-19 REST API for India
 
 API for COVID-19 stats in India, sourced from [The Ministry of Health and Family Welfare](https://www.mohfw.gov.in/)
